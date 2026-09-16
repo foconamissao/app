@@ -1,5 +1,5 @@
 (function(){
-  const VERSION='4.0.4';
+  const VERSION='4.0.5';
   const loadingRx=/carregando|preparando|buscando|analisando/i;
   let reported=false;
   function show(message){

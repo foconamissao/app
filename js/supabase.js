@@ -10,7 +10,7 @@ const configured =
   SUPABASE_URL.startsWith('https://') &&
   SUPABASE_KEY.startsWith('sb_publishable_');
 
-export const sb = configured
+export const sb = window.__FM_SB || (configured
   ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
       auth: {
         persistSession: true,
@@ -18,6 +18,6 @@ export const sb = configured
         detectSessionInUrl: true
       }
     })
-  : null;
+  : null);
 
 export const isConfigured = () => configured && !!sb;

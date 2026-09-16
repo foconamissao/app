@@ -1,5 +1,5 @@
 (function(){
-  const VERSION='4.0.4';
+  const VERSION='4.0.5';
   const KEY='fm_sw_reset_'+VERSION;
   window.__FM_RECOVERY_PROMISE=Promise.resolve();
   try{
