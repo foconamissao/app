@@ -1,13 +1,3 @@
-import {setupAdminMissoes} from './admin_missoes.js';
-import {setupAdminQuestoes} from './admin_questoes.js';
-import {setupAdminConteudo} from './admin_conteudo.js';
-import {setupAdminFlashcards} from './admin_flashcards.js';
-import {setupAdminSimulados} from './admin_simulados.js';
-import {setupAdminAvisos} from './admin_avisos.js';
-import {setupAdminAcompanhamento} from './admin_acompanhamento.js';
-import {setupAdminQualidade} from './admin_qualidade.js';
-import {setupAdminEditais} from './admin_editais.js';
-import {setupAdminIntegridade} from './admin_integridade.js';
 import {sb} from './supabase.js';
 
 const $ = (s) => document.querySelector(s);
@@ -50,4 +40,42 @@ function statusLabel(s){return {pendente:'Pendente',aprovado:'Ativo',nao_aprovad
 function renderParticipants(){const rows=$('#participantRows');if(!rows)return;const q=($('#participantSearch')?.value||'').toLowerCase(),filter=$('#participantFilter')?.value||'todos';const list=participants.filter(p=>(filter==='todos'||p.status===filter)&&(`${p.nome||''} ${p.email||''}`.toLowerCase().includes(q)));if(!list.length){rows.innerHTML='<tr><td colspan="4"><div class="empty compact">Nenhum participante encontrado.</div></td></tr>';return}rows.innerHTML=list.map(p=>`<tr><td><div class="participant-cell"><b>${esc(p.nome||'Sem nome')}</b><small>${esc(p.email||'')}</small></div></td><td>${p.created_at?new Date(p.created_at).toLocaleDateString('pt-BR'):'—'}</td><td><span class="badge ${p.status==='aprovado'?'ok':p.status==='pendente'?'wait':'off'}">${statusLabel(p.status)}</span></td><td class="actions participant-actions">${p.status!=='aprovado'?`<button class="mini" data-part-action="aprovar" data-id="${p.id}">Aprovar</button>`:''}${p.status!=='nao_aprovado'?`<button class="mini" data-part-action="nao_aprovado" data-id="${p.id}">Não aprovar</button>`:''}${p.status==='aprovado'?`<button class="mini" data-part-action="desativado" data-id="${p.id}">Desativar</button>`:''}<button class="mini" data-part-action="editar" data-id="${p.id}">Editar</button>${p.id!==window.__adminUserId?`<button class="mini danger-mini" data-part-action="excluir" data-id="${p.id}">Excluir</button>`:''}</td></tr>`).join('')}
 async function loadParticipants(){const {data,error}=await sb.from('profiles').select('id,nome,email,role,ativo,status,created_at').order('created_at',{ascending:false});if(error)return notice('Não foi possível carregar os participantes.','error');participants=data||[];renderParticipants()}
 function bindParticipants(ctx){window.__adminUserId=ctx.user.id;$('#participantSearch')?.addEventListener('input',renderParticipants);$('#participantFilter')?.addEventListener('change',renderParticipants);$('#participantRows')?.addEventListener('click',async e=>{const b=e.target.closest('[data-part-action]');if(!b)return;const p=participants.find(x=>x.id===b.dataset.id);if(!p)return;const a=b.dataset.partAction;if(a==='editar'){const nome=prompt('Nome do participante:',p.nome||'');if(nome===null)return;const {error}=await sb.rpc('admin_set_participant',{p_user:p.id,p_status:p.status,p_nome:nome});if(error)return notice('Não foi possível editar o participante.','error');notice('Participante atualizado.');return loadParticipants()}if(a==='excluir'){if(!confirm(`Excluir definitivamente o cadastro de ${p.nome||p.email}?`))return;const {error}=await sb.rpc('admin_delete_participant',{p_user:p.id});if(error)return notice('Não foi possível excluir o participante.','error');notice('Cadastro excluído.');return loadParticipants()}const status=a==='aprovar'?'aprovado':a;const {error}=await sb.rpc('admin_set_participant',{p_user:p.id,p_status:status,p_nome:null});if(error)return notice('Não foi possível alterar o acesso.','error');notice(status==='aprovado'?'Participante aprovado.':status==='nao_aprovado'?'Cadastro não aprovado.':'Acesso desativado.');await loadParticipants()})}
-export async function setupAdmin(ctx){if(ctx.profile?.role!=='admin'){document.querySelector('#adminArea').innerHTML='<div class="empty">Acesso restrito.</div>';return}tabs();bindStructure();bindParticipants(ctx);await Promise.all([refresh(),loadParticipants(),setupAdminMissoes(ctx)]);await setupAdminQuestoes(ctx,refresh,notice);await setupAdminConteudo(ctx);await setupAdminFlashcards(ctx,notice);await setupAdminSimulados(ctx);await setupAdminAvisos(ctx,notice);await setupAdminAcompanhamento(ctx);await setupAdminIntegridade(ctx,notice);await setupAdminQualidade(ctx);await setupAdminEditais(ctx)}
+async function loadFeature(file,exportName,args=[]){
+  try{
+    const mod=await import(`${file}?v=4.0.4`);
+    const fn=mod?.[exportName];
+    if(typeof fn!=='function') throw new Error(`Função ${exportName} ausente.`);
+    await fn(...args);
+    return true;
+  }catch(error){
+    console.error(`[Admin] Falha em ${file}:`,error);
+    return false;
+  }
+}
+export async function setupAdmin(ctx){
+  if(ctx.profile?.role!=='admin'){
+    const area=document.querySelector('#adminArea');
+    if(area)area.innerHTML='<div class="empty">Acesso restrito.</div>';
+    return;
+  }
+  tabs();
+  try{bindStructure()}catch(e){console.error('[Admin] estrutura:',e)}
+  try{bindParticipants(ctx)}catch(e){console.error('[Admin] participantes:',e)}
+  await Promise.allSettled([refresh(),loadParticipants()]);
+  const features=[
+    ['./admin_missoes.js','setupAdminMissoes',[ctx]],
+    ['./admin_questoes.js','setupAdminQuestoes',[ctx,refresh,notice]],
+    ['./admin_conteudo.js','setupAdminConteudo',[ctx]],
+    ['./admin_flashcards.js','setupAdminFlashcards',[ctx,notice]],
+    ['./admin_simulados.js','setupAdminSimulados',[ctx]],
+    ['./admin_avisos.js','setupAdminAvisos',[ctx,notice]],
+    ['./admin_acompanhamento.js','setupAdminAcompanhamento',[ctx]],
+    ['./admin_integridade.js','setupAdminIntegridade',[ctx,notice]],
+    ['./admin_qualidade.js','setupAdminQualidade',[ctx]],
+    ['./admin_editais.js','setupAdminEditais',[ctx]]
+  ];
+  const results=[];
+  for(const f of features)results.push(await loadFeature(...f));
+  const failed=results.filter(x=>!x).length;
+  if(failed) notice(`${failed} módulo(s) administrativo(s) não puderam ser carregados. Os demais continuam disponíveis.`,'error');
+}

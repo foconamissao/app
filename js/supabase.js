@@ -1,6 +1,8 @@
 const SUPABASE_URL = 'https://zjnbmgkvnzdnaiszqhta.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_vghGz23YWhZ4CNXMjkrslA_ZH1osJsI';
 
+if (window.__FM_SUPABASE_READY) { try { await window.__FM_SUPABASE_READY; } catch {} }
+
 if (!window.supabase) console.error('Supabase JS não carregou.');
 
 const configured =
