@@ -52,7 +52,7 @@ function render(){
   el.innerHTML=list.map(q=>`<article class="card admin-question-item ${q.ativo?'':'is-inactive'}">
     <div class="admin-question-head"><div><span class="eyebrow">#${q.id} · ${esc(q.disciplinas?.nome||'Sem disciplina')}</span><b>${esc(q.assuntos?.nome||'Sem assunto específico')}</b></div><span class="badge ${q.ativo?'ok':'off'}">${q.ativo?'Ativa':'Inativa'}</span></div>
     <p>${esc(q.enunciado).replace(/\n/g,'<br>')}</p>
-    <div class="admin-question-meta">${q.banca?`<span>${esc(q.banca)}</span>`:''}${q.concurso?`<span>${esc(q.concurso)}</span>`:''}${q.ano?`<span>${q.ano}</span>`:''}<span>Correta: ${q.correta}</span></div>
+    <div class="admin-question-meta">${q.banca?`<span>${esc(q.banca)}</span>`:''}${q.concurso?`<span>${esc(q.concurso)}</span>`:''}${q.ano?`<span>${q.ano}</span>`:''}<span>Correta: ${q.correta}</span><span>R${q.recorrencia||3}</span><span>D${q.dificuldade||3}</span></div>
     <div class="actions"><button class="mini" data-q-action="editar" data-id="${q.id}">Editar</button><button class="mini" data-q-action="toggle" data-id="${q.id}">${q.ativo?'Desativar':'Ativar'}</button><button class="mini danger-mini" data-q-action="excluir" data-id="${q.id}">Excluir</button></div>
   </article>`).join('');
 }
@@ -80,7 +80,7 @@ function editQuestion(q){
   f.elements.id.value=q.id;
   f.elements.disciplina_id.value=q.disciplina_id;
   fillTopics(q.assunto_id);
-  ['banca','concurso','ano','enunciado','alternativa_a','alternativa_b','alternativa_c','alternativa_d','alternativa_e','correta','comentario','palavra_chave','macete'].forEach(k=>{if(f.elements[k])f.elements[k].value=q[k]??'';});
+  ['subassunto','banca','concurso','ano','recorrencia','dificuldade','enunciado','alternativa_a','alternativa_b','alternativa_c','alternativa_d','alternativa_e','correta','comentario','ponto_fixacao','base_legal','palavra_chave','macete'].forEach(k=>{if(f.elements[k])f.elements[k].value=q[k]??'';});
   $('#saveQuestion').textContent='ATUALIZAR QUESTÃO';
   $('#cancelQuestion').classList.remove('hidden');
   f.scrollIntoView({behavior:'smooth',block:'start'});
@@ -94,10 +94,15 @@ async function save(e,refreshSummary,notice){
   payload.disciplina_id=Number(payload.disciplina_id);
   payload.assunto_id=payload.assunto_id?Number(payload.assunto_id):null;
   payload.ano=payload.ano?Number(payload.ano):null;
+  payload.recorrencia=Math.min(5,Math.max(1,Number(payload.recorrencia)||3));
+  payload.dificuldade=Math.min(5,Math.max(1,Number(payload.dificuldade)||3));
+  payload.subassunto=payload.subassunto?.trim()||null;
   payload.alternativa_e=payload.alternativa_e?.trim()||null;
   payload.banca=payload.banca?.trim()||null;
   payload.concurso=payload.concurso?.trim()||null;
   payload.comentario=payload.comentario?.trim()||null;
+  payload.ponto_fixacao=payload.ponto_fixacao?.trim()||null;
+  payload.base_legal=payload.base_legal?.trim()||null;
   payload.palavra_chave=payload.palavra_chave?.trim()||null;
   payload.macete=payload.macete?.trim()||null;
   payload.enunciado=payload.enunciado.trim();

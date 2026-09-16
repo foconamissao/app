@@ -1,4 +1,5 @@
 import {sb} from './supabase.js';
+import {prdScore,prdLabel,weightedSample} from './prd.js';
 
 const $ = (s) => document.querySelector(s);
 const esc = (v='') => String(v).replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
@@ -10,6 +11,7 @@ const state = {
   questions:[],
   session:[],
   favorites:new Set(),
+  errorCounts:new Map(),
   index:0,
   selected:null,
   answered:false,
@@ -46,17 +48,19 @@ function fillTopics(){
 }
 
 async function loadBase(){
-  const [{data:disc,error:de},{data:top,error:te},{data:q,error:qe},{data:fav,error:fe}]=await Promise.all([
-    sb.from('disciplinas').select('id,nome').eq('ativo',true).order('ordem').order('nome'),
-    sb.from('assuntos').select('id,disciplina_id,nome').eq('ativo',true).order('nome'),
-    sb.from('questoes').select('id,disciplina_id,assunto_id,banca,concurso,ano,enunciado,alternativa_a,alternativa_b,alternativa_c,alternativa_d,alternativa_e,correta,comentario,palavra_chave,macete,disciplinas(nome),assuntos(nome)').eq('ativo',true),
-    sb.from('favoritos').select('questao_id').eq('user_id',state.ctx.user.id)
+  const [{data:disc,error:de},{data:top,error:te},{data:q,error:qe},{data:fav,error:fe},{data:errs,error:ee}]=await Promise.all([
+    sb.from('disciplinas').select('id,nome,peso').eq('ativo',true).order('ordem').order('nome'),
+    sb.from('assuntos').select('id,disciplina_id,nome,recorrencia,dificuldade').eq('ativo',true).order('nome'),
+    sb.from('questoes').select('id,disciplina_id,assunto_id,subassunto,banca,concurso,ano,recorrencia,dificuldade,enunciado,alternativa_a,alternativa_b,alternativa_c,alternativa_d,alternativa_e,correta,comentario,ponto_fixacao,base_legal,palavra_chave,macete,disciplinas(nome,peso),assuntos(nome,recorrencia,dificuldade)').eq('ativo',true),
+    sb.from('favoritos').select('questao_id').eq('user_id',state.ctx.user.id),
+    sb.from('caderno_erros').select('questao_id,erros,dominado').eq('user_id',state.ctx.user.id)
   ]);
-  if(de||te||qe||fe) throw de||te||qe||fe;
+  if(de||te||qe||fe||ee) throw de||te||qe||fe||ee;
   state.disciplines=disc||[];
   state.topics=top||[];
   state.questions=q||[];
   state.favorites=new Set((fav||[]).map(x=>Number(x.questao_id)));
+  state.errorCounts=new Map((errs||[]).map(x=>[Number(x.questao_id),{erros:Number(x.erros)||0,dominado:!!x.dominado}]));
   fillDisciplines();
   updateAvailableCount();
 }
@@ -99,7 +103,9 @@ function showOnly(id){
 function currentQuestion(){return state.session[state.index]||null;}
 
 function metaText(q){
-  const parts=[q.disciplinas?.nome,q.assuntos?.nome,q.banca,q.concurso,q.ano].filter(Boolean);
+  const maxPeso=Math.max(1,...state.disciplines.map(d=>Number(d.peso)||1));
+  const score=prdScore(q,maxPeso);
+  const parts=[q.disciplinas?.nome,q.assuntos?.nome,q.subassunto,q.banca,q.concurso,q.ano,`${prdLabel(score)} ${score.toFixed(2)}`].filter(Boolean);
   return parts.join(' · ');
 }
 
@@ -166,6 +172,7 @@ async function submitAnswer(){
   feedback.innerHTML=`
     <div class="feedback-head"><b>${correct?'✅ Resposta correta':'❌ Resposta incorreta'}</b><span>${correct?`Você marcou ${answer}.`:`Você marcou ${answer}. Correta: ${q.correta}.`}</span></div>
     ${q.comentario?`<div class="feedback-block"><strong>💡 Comentário</strong><p>${esc(q.comentario).replace(/\n/g,'<br>')}</p></div>`:''}
+    ${q.ponto_fixacao?`<div class="feedback-block fixation-block"><strong>📌 Ponto de fixação</strong><p>${esc(q.ponto_fixacao).replace(/\n/g,'<br>')}</p></div>`:''}${q.base_legal?`<div class="feedback-block"><strong>⚖️ Base legal / referência</strong><p>${esc(q.base_legal).replace(/\n/g,'<br>')}</p></div>`:''}
     ${(q.palavra_chave||q.macete)?`<div class="feedback-tips">${q.palavra_chave?`<span><strong>🔑 Palavra-chave:</strong> ${esc(q.palavra_chave)}</span>`:''}${q.macete?`<span><strong>🧠 Macete:</strong> ${esc(q.macete)}</span>`:''}</div>`:''}`;
   $('#submitAnswer').classList.add('hidden');
   $('#nextQuestion').classList.remove('hidden');
@@ -203,7 +210,11 @@ async function startSession(){
   try{
     const list=await filteredQuestions();
     const qty=Math.max(1,Number($('#filterQuantity').value)||20);
-    state.session=shuffle(list).slice(0,qty);
+    const distribution=$('#filterDistribution')?.value||'prd';
+    if(distribution==='prd'){
+      const maxPeso=Math.max(1,...state.disciplines.map(d=>Number(d.peso)||1));
+      state.session=weightedSample(list,qty,q=>{const base=Math.pow(prdScore(q,maxPeso),2);const hist=state.errorCounts.get(Number(q.id));const reforco=hist?1+Math.min(1.25,(hist.erros||0)*.18)*(hist.dominado?.65:1):1;return base*reforco;});
+    }else state.session=shuffle(list).slice(0,qty);
     if(!state.session.length){notice('Nenhuma questão encontrada com esses filtros.');return;}
     state.index=0;state.hits=0;
     showOnly('#questionSession');
