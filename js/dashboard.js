@@ -1,22 +1,49 @@
 import {sb} from './supabase.js';
-function localDateISO(date=new Date()){return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`}
+const $=s=>document.querySelector(s);
+const esc=(v='')=>String(v).replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
+const localDateISO=(d=new Date())=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 const typeLabel={teoria:'Teoria',questoes:'Questões',flashcards:'Flashcards',revisao:'Revisão',aula:'Aula',simulado:'Simulado'};
+const quotes=[
+'A farda começa a ser conquistada muito antes da posse: começa na disciplina de hoje.',
+'Quando a motivação faltar, lembre-se: o seu concorrente também está cansado. Continue.',
+'Cada questão resolvida é um passo a menos entre você e o seu distintivo.',
+'Não estude apenas para passar na prova. Prepare-se para estar à altura da missão que escolheu.',
+'Enquanto muitos esperam o edital, quem realmente quer a vaga constrói vantagem todos os dias.',
+'O resultado pode demorar, mas nenhum dia de estudo sério é desperdiçado.',
+'Você não precisa vencer a concorrência inteira hoje. Precisa apenas cumprir a missão do dia.',
+'A aprovação não costuma acontecer em um grande dia de inspiração, mas em centenas de dias de constância.',
+'Cansaço passa. Questões erradas viram aprendizado. Desistir é a única coisa que realmente encerra a missão.',
+'Um dia você vai olhar para a farda e lembrar de todas as vezes em que poderia ter parado, mas decidiu continuar.'
+];
+function dailyQuote(){const key=Number(localDateISO().replaceAll('-',''));return quotes[(key*7+3)%quotes.length]}
+function dayBounds(date=new Date()){const a=new Date(date);a.setHours(0,0,0,0);const b=new Date(a);b.setDate(b.getDate()+1);return[a,b]}
+function fmtDate(iso){return iso?new Date(iso).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):'—'}
+function computeStreak(days){const set=new Set(days);let cur=new Date();cur.setHours(12,0,0,0);if(!set.has(localDateISO(cur)))cur.setDate(cur.getDate()-1);let n=0;while(set.has(localDateISO(cur))){n++;cur.setDate(cur.getDate()-1)}return n}
+function questionSession(uid){try{const x=JSON.parse(localStorage.getItem(`fmn_qsession_${uid}`)||'null');if(!x||x.status!=='active'||!Array.isArray(x.ids)||!x.ids.length)return null;if(Date.now()-(x.updatedAt||0)>48*3600*1000)return null;return x}catch{return null}}
+async function pendingFlashcards(uid){const today=localDateISO();const [{data:cards},{data:revs}]=await Promise.all([sb.from('flashcards').select('id').eq('ativo',true),sb.from('flashcard_revisoes').select('flashcard_id,proxima_revisao,reviewed_at').eq('user_id',uid).order('reviewed_at',{ascending:false})]);const latest=new Map();for(const r of (revs||[]))if(!latest.has(Number(r.flashcard_id)))latest.set(Number(r.flashcard_id),r);return (cards||[]).filter(c=>{const r=latest.get(Number(c.id));return !r||!r.proxima_revisao||r.proxima_revisao<=today}).length}
+function renderEvolution(rows){const box=$('#weekEvolution');const summary=$('#weekSummary');const counts=[];for(let i=6;i>=0;i--){const d=new Date();d.setDate(d.getDate()-i);const key=localDateISO(d);const n=rows.filter(r=>localDateISO(new Date(r.created_at))===key).length;counts.push({label:d.toLocaleDateString('pt-BR',{weekday:'short'}).replace('.',''),n})}const max=Math.max(1,...counts.map(x=>x.n));box.innerHTML=counts.map(x=>`<div class="mini-bar"><div><i style="height:${Math.max(5,Math.round(x.n/max*100))}%"></i></div><b>${x.n}</b><small>${esc(x.label)}</small></div>`).join('');const total=counts.reduce((a,b)=>a+b.n,0);summary.textContent=`${total} questão${total===1?'':'ões'} respondida${total===1?'':'s'} nos últimos 7 dias.`}
+function renderReinforcement(errors){const box=$('#reinforcementTopics');const map=new Map();for(const e of errors){if(e.dominado)continue;const d=e.questoes?.disciplinas?.nome||'Sem disciplina',a=e.questoes?.assuntos?.nome||'Assunto geral',key=`${d}|${a}`;const cur=map.get(key)||{d,a,n:0};cur.n+=Number(e.erros||1);map.set(key,cur)}const list=[...map.values()].sort((a,b)=>b.n-a.n).slice(0,5);box.innerHTML=list.length?list.map(x=>`<div class="reinforce-row"><div><b>${esc(x.a)}</b><small>${esc(x.d)}</small></div><span class="badge">${x.n} erro${x.n===1?'':'s'}</span></div>`).join(''):'<div class="empty compact">Nenhum ponto crítico no momento. Continue avançando.</div>'}
+function renderContinue({runningSim,qSession,fcDue,pendingActs}){const box=$('#continueStudy');const items=[];if(runningSim)items.push({icon:'🏆',title:'Continuar simulado',text:runningSim.simulados?.titulo||'Tentativa em andamento',href:`./simulados.html?tentativa=${runningSim.id}`,cta:'RETOMAR PROVA'});if(qSession)items.push({icon:'📝',title:'Continuar questões',text:`Questão ${Math.min((qSession.index||0)+1,qSession.ids.length)} de ${qSession.ids.length}`,href:'./questoes.html?retomar=1',cta:'CONTINUAR'});if(fcDue>0)items.push({icon:'🧠',title:'Revisar flashcards',text:`${fcDue} pendente${fcDue===1?'':'s'} para hoje`,href:'./flashcards.html',cta:'REVISAR'});if(pendingActs>0)items.push({icon:'🎯',title:'Cumprir missão do dia',text:`${pendingActs} atividade${pendingActs===1?'':'s'} restante${pendingActs===1?'':'s'}`,href:'./missao.html',cta:'ABRIR MISSÃO'});if(!items.length)items.push({icon:'✅',title:'Tudo em dia',text:'Você concluiu as prioridades disponíveis. Que tal avançar no banco de questões?',href:'./questoes.html',cta:'FAZER QUESTÕES'});box.innerHTML=items.slice(0,4).map(x=>`<a class="card continue-card" href="${x.href}"><span class="continue-icon">${x.icon}</span><div><b>${esc(x.title)}</b><small>${esc(x.text)}</small></div><strong>${x.cta} →</strong></a>`).join('')}
 export async function loadDashboard(ctx){
- const uid=ctx.user.id,today=localDateISO();
- const dayStart=new Date();dayStart.setHours(0,0,0,0);const dayEnd=new Date(dayStart);dayEnd.setDate(dayEnd.getDate()+1);
- const [{count:q},{data:resp},{count:fc},{data:activities},{data:progress},{data:nextSim}]=await Promise.all([
-  sb.from('respostas').select('*',{count:'exact',head:true}).eq('user_id',uid),
-  sb.from('respostas').select('acertou').eq('user_id',uid),
-  sb.from('flashcard_revisoes').select('*',{count:'exact',head:true}).eq('user_id',uid).gte('reviewed_at',dayStart.toISOString()).lt('reviewed_at',dayEnd.toISOString()),
+ const uid=ctx.user.id,today=localDateISO(),[dayStart,dayEnd]=dayBounds();const weekStart=new Date(dayStart);weekStart.setDate(weekStart.getDate()-6);const historyStart=new Date(dayStart);historyStart.setDate(historyStart.getDate()-120);
+ $('#dailyGreeting').textContent='Futuro policial, a missão de hoje começa agora.';$('#dailyQuote').textContent=dailyQuote();
+ const [{data:todayResp},{data:recentResp},{data:fcToday},{data:activities},{data:progress},{data:sims},{data:running},{data:errors},{data:studyResponses},{data:studyCards},{data:studyProgress},fcDue]=await Promise.all([
+  sb.from('respostas').select('id,acertou,created_at').eq('user_id',uid).gte('created_at',dayStart.toISOString()).lt('created_at',dayEnd.toISOString()),
+  sb.from('respostas').select('id,acertou,created_at').eq('user_id',uid).gte('created_at',weekStart.toISOString()).lt('created_at',dayEnd.toISOString()),
+  sb.from('flashcard_revisoes').select('id,reviewed_at').eq('user_id',uid).gte('reviewed_at',dayStart.toISOString()).lt('reviewed_at',dayEnd.toISOString()),
   sb.from('atividades').select('id,titulo,tipo,ordem,cronogramas(ativo)').eq('data',today).eq('ativo',true).order('ordem').order('id'),
   sb.from('atividade_progresso').select('atividade_id,concluida').eq('user_id',uid).eq('data',today),
-  sb.from('simulados').select('id,titulo,data_liberacao,duracao_minutos').eq('ativo',true).gte('data_liberacao',new Date().toISOString()).order('data_liberacao').limit(1).maybeSingle()
+  sb.from('simulados').select('id,titulo,data_liberacao,data_encerramento,duracao_minutos,ativo').eq('ativo',true).order('data_liberacao'),
+  sb.from('simulado_tentativas').select('id,simulado_id,status,iniciada_em,simulados(titulo)').eq('user_id',uid).eq('status','em_andamento').order('iniciada_em',{ascending:false}).limit(1).maybeSingle(),
+  sb.from('caderno_erros').select('erros,dominado,questoes(disciplinas(nome),assuntos(nome))').eq('user_id',uid),
+  sb.from('respostas').select('created_at').eq('user_id',uid).gte('created_at',historyStart.toISOString()),
+  sb.from('flashcard_revisoes').select('reviewed_at').eq('user_id',uid).gte('reviewed_at',historyStart.toISOString()),
+  sb.from('atividade_progresso').select('data,concluida').eq('user_id',uid).eq('concluida',true).gte('data',localDateISO(historyStart)),
+  pendingFlashcards(uid)
  ]);
- const acertos=(resp||[]).filter(x=>x.acertou).length,perc=resp?.length?Math.round(acertos/resp.length*100):0;
- document.querySelector('#qCount').textContent=q||0;document.querySelector('#accuracy').textContent=perc+'%';document.querySelector('#fcCount').textContent=fc||0;
- const acts=(activities||[]).filter(a=>!a.cronogramas||a.cronogramas.ativo!==false),pmap=new Map((progress||[]).map(p=>[p.atividade_id,p]));
- const list=document.querySelector('#todayTasks');
- if(acts.length){list.innerHTML=acts.map(a=>`<label class="task"><input type="checkbox" ${pmap.get(a.id)?.concluida?'checked':''} disabled><span><b>${a.titulo||'Atividade'}</b><small>${typeLabel[a.tipo]||a.tipo||''}</small></span></label>`).join('');const done=acts.filter(a=>pmap.get(a.id)?.concluida).length;document.querySelector('.progress i').style.width=Math.round(done/acts.length*100)+'%'}
- else{list.innerHTML='<div class="empty compact"><b>Nenhuma atividade programada para hoje.</b><br><span>Quando a administração publicar a missão, ela aparecerá aqui.</span></div>';document.querySelector('.progress i').style.width='0%'}
- const box=document.querySelector('#nextSimulation');if(box&&nextSim){const dt=new Date(nextSim.data_liberacao);box.innerHTML=`<b>${nextSim.titulo}</b><p class="muted">${dt.toLocaleDateString('pt-BR')} • ${nextSim.duracao_minutos} min</p><a class="btn secondary" href="./simulados.html">VER SIMULADO</a>`}
+ const tr=todayResp||[],hits=tr.filter(x=>x.acertou).length,acc=tr.length?Math.round(hits/tr.length*100):0;$('#qToday').textContent=tr.length;$('#qTodayMeta').textContent=`${hits} acerto${hits===1?'':'s'}`;$('#accuracyToday').textContent=`${acc}%`;$('#fcPending').textContent=fcDue;
+ const studyDays=[...(studyResponses||[]).map(x=>localDateISO(new Date(x.created_at))),...(studyCards||[]).map(x=>localDateISO(new Date(x.reviewed_at))),...(studyProgress||[]).map(x=>x.data)];const streak=computeStreak(studyDays);$('#studyStreak').textContent=`${streak} dia${streak===1?'':'s'}`;
+ const acts=(activities||[]).filter(a=>!a.cronogramas||a.cronogramas.ativo!==false),pmap=new Map((progress||[]).map(p=>[Number(p.atividade_id),p]));const list=$('#todayTasks');const done=acts.filter(a=>pmap.get(Number(a.id))?.concluida).length,pct=acts.length?Math.round(done/acts.length*100):0;$('#missionProgressText').textContent=`${pct}%`;$('#missionProgressBar').style.width=`${pct}%`;list.innerHTML=acts.length?acts.map(a=>`<div class="task dashboard-task ${pmap.get(Number(a.id))?.concluida?'done':''}"><span class="task-check">${pmap.get(Number(a.id))?.concluida?'✓':'○'}</span><span><b>${esc(a.titulo||'Atividade')}</b><small>${esc(typeLabel[a.tipo]||a.tipo||'')}</small></span></div>`).join(''):'<div class="empty compact">Nenhuma atividade programada para hoje.</div>';
+ const now=Date.now();const next=(sims||[]).filter(s=>!s.data_encerramento||new Date(s.data_encerramento).getTime()>=now).sort((a,b)=>new Date(a.data_liberacao||0)-new Date(b.data_liberacao||0))[0];const box=$('#nextSimulation');box.innerHTML=next?`<div class="next-sim"><span class="badge">${new Date(next.data_liberacao||0).getTime()<=now?'Disponível':'Agendado'}</span><h3>${esc(next.titulo)}</h3><p class="muted">${next.data_liberacao?fmtDate(next.data_liberacao):'Disponível agora'} · ${next.duracao_minutos} min</p><a class="btn secondary" href="./simulados.html">VER SIMULADO</a></div>`:'<div class="empty compact">Nenhum simulado agendado.</div>';
+ renderReinforcement(errors||[]);renderEvolution(recentResp||[]);renderContinue({runningSim:running,qSession:questionSession(uid),fcDue,pendingActs:Math.max(0,acts.length-done)});
 }

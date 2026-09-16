@@ -19,3 +19,14 @@
   .account-avatar{width:34px;height:34px}
   .account-gear{width:34px;height:34px}
 }
+
+/* V2.0 — navegação mobile estilo app */
+@media(max-width:900px){
+  body{padding-bottom:calc(72px + env(safe-area-inset-bottom))}
+  .mobile-bottom-nav{position:fixed;display:grid;grid-template-columns:repeat(5,1fr);left:0;right:0;bottom:0;z-index:40;padding:7px 8px calc(7px + env(safe-area-inset-bottom));background:rgba(12,15,21,.97);border-top:1px solid var(--line);backdrop-filter:blur(14px)}
+  .mobile-bottom-nav a,.mobile-bottom-nav button{display:grid;place-items:center;gap:2px;min-height:48px;background:transparent;border:0;color:var(--muted);text-decoration:none;font:inherit;border-radius:10px}.mobile-bottom-nav span{font-size:19px}.mobile-bottom-nav small{font-size:9px}.mobile-bottom-nav .active{color:var(--gold2);background:rgba(211,170,81,.08)}
+  .continue-grid{grid-template-columns:1fr}.dashboard-main-grid,.dashboard-insights{grid-template-columns:1fr}.dashboard-welcome{align-items:flex-start}.welcome-mark{display:none}.ranking-row.rich{grid-template-columns:40px 1fr auto}.admin-notice-item{grid-template-columns:1fr}.admin-notice-item .actions{justify-self:start}
+}
+@media(max-width:620px){
+  .dashboard-welcome h2{font-size:23px}.dashboard-welcome p{font-size:14px}.continue-card{grid-template-columns:auto 1fr}.continue-card>strong{grid-column:2}.mini-bars{gap:4px}.ranking-row.rich{grid-template-columns:34px 1fr}.ranking-row.rich>strong{grid-column:2;text-align:left}.notif-panel{right:-60px}.topbar-right{max-width:70%}
+}

@@ -1,10 +1,12 @@
 import {sb} from './supabase.js';
-const $=s=>document.querySelector(s);
-const esc=(v='')=>String(v).replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
-export async function loadRanking(){
-  const host=$('#rankingList');
-  const {data,error}=await sb.from('ranking_atual').select('*').order('xp',{ascending:false}).limit(100);
-  if(error){host.innerHTML='<div class="empty">Não foi possível carregar o ranking.</div>';return}
-  const rows=data||[];if(!rows.length){host.innerHTML='<div class="empty">O ranking ainda está vazio.</div>';return}
-  host.innerHTML=rows.map((r,i)=>`<div class="ranking-row"><span class="ranking-pos">${i+1}</span><span class="ranking-person"><b>${esc(r.nome||'Participante')}</b></span><strong>${Number(r.xp||0).toLocaleString('pt-BR',{maximumFractionDigits:1})} XP</strong></div>`).join('');
-}
+const $=s=>document.querySelector(s);const esc=(v='')=>String(v).replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
+let rows=[],mode='geral';
+const cfg={
+ geral:{title:'Ranking geral',sub:'Dedicação acumulada na plataforma.',value:r=>r.pontos_gerais,label:r=>`${Number(r.pontos_gerais||0).toLocaleString('pt-BR',{maximumFractionDigits:1})} pts`},
+ semanal:{title:'Ranking semanal',sub:'Atividade registrada nos últimos 7 dias.',value:r=>r.pontos_semanais,label:r=>`${Number(r.pontos_semanais||0).toLocaleString('pt-BR',{maximumFractionDigits:1})} pts`},
+ questoes:{title:'Ranking de questões',sub:'Quantidade de questões respondidas; aproveitamento desempata.',value:r=>Number(r.questoes_total||0)*1000+Number(r.aproveitamento||0),label:r=>`${r.questoes_total||0} questões · ${Number(r.aproveitamento||0).toFixed(0)}%`},
+ constancia:{title:'Ranking de constância',sub:'Dias com atividade de estudo nos últimos 30 dias.',value:r=>Number(r.dias_ativos_30||0),label:r=>`${r.dias_ativos_30||0} dia${Number(r.dias_ativos_30||0)===1?'':'s'}`},
+ simulados:{title:'Ranking de simulados',sub:'Média dos resultados finalizados.',value:r=>Number(r.media_simulados||0)*1000+Number(r.simulados_total||0),label:r=>`${Number(r.media_simulados||0).toFixed(1)}% · ${r.simulados_total||0} prova${Number(r.simulados_total||0)===1?'':'s'}`}
+};
+function render(){const c=cfg[mode],list=[...rows].sort((a,b)=>c.value(b)-c.value(a));$('#rankingTitle').textContent=c.title;$('#rankingSubtitle').textContent=c.sub;const host=$('#rankingList');host.innerHTML=list.length?list.map((r,i)=>`<div class="ranking-row rich"><span class="ranking-pos rank-${i+1}">${i+1}</span><span class="ranking-person"><span class="ranking-avatar">${esc((r.nome||'P').trim()[0]?.toUpperCase()||'P')}</span><span><b>${esc(r.nome||'Participante')}</b><small>${mode==='questoes'?`${r.acertos_total||0} acertos`:mode==='simulados'?`${r.simulados_total||0} concluído${Number(r.simulados_total||0)===1?'':'s'}`:'Foco na missão'}</small></span></span><strong>${c.label(r)}</strong></div>`).join(''):'<div class="empty">O ranking ainda está vazio.</div>'}
+export async function loadRanking(){const host=$('#rankingList');const {data,error}=await sb.rpc('ranking_resumo_estudos');if(error){console.error(error);host.innerHTML='<div class="empty">Não foi possível carregar o ranking.</div>';return}rows=data||[];render();$('#rankingTabs').addEventListener('click',e=>{const b=e.target.closest('[data-rank]');if(!b)return;mode=b.dataset.rank;document.querySelectorAll('#rankingTabs .tab').forEach(x=>x.classList.toggle('active',x===b));render()})}

@@ -27,6 +27,16 @@ function notice(message,type='error'){
   notice.timer=setTimeout(()=>el.classList.add('hidden'),4500);
 }
 
+
+function sessionKey(){return state.ctx?.user?.id?`fmn_qsession_${state.ctx.user.id}`:'fmn_qsession'}
+function persistSession(nextIndex=state.index){
+  if(!state.ctx||!state.session.length)return;
+  const data={status:'active',ids:state.session.map(q=>Number(q.id)),index:Math.max(0,Number(nextIndex)||0),hits:state.hits||0,updatedAt:Date.now()};
+  localStorage.setItem(sessionKey(),JSON.stringify(data));
+}
+function clearPersistedSession(){try{localStorage.removeItem(sessionKey())}catch{}}
+function getPersistedSession(){try{const x=JSON.parse(localStorage.getItem(sessionKey())||'null');if(!x||x.status!=='active'||!Array.isArray(x.ids)||!x.ids.length)return null;if(Date.now()-(x.updatedAt||0)>48*3600*1000){clearPersistedSession();return null}return x}catch{return null}}
+
 function shuffle(list){
   const a=[...list];
   for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}
@@ -157,6 +167,7 @@ async function submitAnswer(){
   }else state.hits++;
 
   state.answered=true;
+  if(state.index+1>=state.session.length) clearPersistedSession(); else persistSession(state.index+1);
   document.querySelectorAll('.question-option').forEach(btn=>{
     btn.disabled=true;
     const l=btn.dataset.letter;
@@ -219,6 +230,7 @@ async function startSession(){
     }else state.session=shuffle(list).slice(0,qty);
     if(!state.session.length){notice('Nenhuma questão encontrada com esses filtros.');return;}
     state.index=0;state.hits=0;
+    persistSession(0);
     showOnly('#questionSession');
     renderQuestion();
   }catch(e){
@@ -229,10 +241,12 @@ async function startSession(){
 function nextQuestion(){
   if(!state.answered)return;
   state.index++;
+  persistSession(state.index);
   if(state.index>=state.session.length)finishSession(); else renderQuestion();
 }
 
 function finishSession(){
+  clearPersistedSession();
   const total=Math.min(state.index+(state.answered?1:0),state.session.length);
   $('#resultTotal').textContent=total;
   $('#resultHits').textContent=state.hits;
@@ -241,6 +255,7 @@ function finishSession(){
 }
 
 function resetSession(){
+  clearPersistedSession();
   state.session=[];state.index=0;state.selected=null;state.answered=false;state.hits=0;
   if(location.search)history.replaceState(null,'',location.pathname);
   showOnly('#questionSetup');
@@ -251,13 +266,25 @@ export async function initQuestoes(ctx){
   state.ctx=ctx;
   try{
     await loadBase();
-    const directId=Number(new URLSearchParams(location.search).get('questao'))||null;
+    const params=new URLSearchParams(location.search);
+    const directId=Number(params.get('questao'))||null;
+    const resume=params.get('retomar')==='1';
     if(directId){
       const direct=state.questions.find(q=>Number(q.id)===directId);
       if(direct){
         state.session=[direct];state.index=0;state.hits=0;
         showOnly('#questionSession');renderQuestion();
       }else notice('Esta questão não está disponível para revisão.');
+    }else if(resume){
+      const saved=getPersistedSession();
+      if(saved){
+        const map=new Map(state.questions.map(q=>[Number(q.id),q]));
+        state.session=saved.ids.map(id=>map.get(Number(id))).filter(Boolean);
+        state.index=Math.max(0,Math.min(Number(saved.index)||0,Math.max(0,state.session.length-1)));
+        state.hits=Number(saved.hits)||0;
+        if(state.session.length){showOnly('#questionSession');renderQuestion();}
+        else clearPersistedSession();
+      }
     }
   }
   catch(e){console.error(e);notice('Não foi possível carregar o banco de questões.');}
