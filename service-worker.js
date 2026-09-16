@@ -1,11 +1,11 @@
-const CACHE='missao-pe-shell-v2.3.0';
+const CACHE='missao-pe-shell-v3.0.0';
 const SHELL=[
-  './','./login.html','./cadastro.html','./index.html','./missao.html','./cronograma.html','./calendario.html','./revisao.html',
+  './','./login.html','./plano.html','./objetivos.html','./cadastro.html','./index.html','./missao.html','./cronograma.html','./calendario.html','./revisao.html',
   './questoes.html','./flashcards.html','./erros.html','./simulados.html','./desempenho.html',
   './ranking.html','./perfil.html','./admin.html',
   './css/variables.css','./css/global.css','./css/responsive.css',
   './assets/logo-missao-pe.png','./assets/icon-192.png','./assets/icon-512.png','./assets/apple-touch-icon.png',
-  './js/pwa.js','./js/app.js','./js/notifications.js','./js/dashboard.js','./js/calendario.js','./js/revisao.js','./js/profile_stats.js','./js/admin_acompanhamento.js','./js/admin.js','./js/admin_integridade.js'
+  './js/pwa.js','./js/plano.js','./js/objetivos.js','./js/admin_qualidade.js','./js/admin_editais.js','./js/app.js','./js/notifications.js','./js/dashboard.js','./js/calendario.js','./js/revisao.js','./js/profile_stats.js','./js/admin_acompanhamento.js','./js/admin.js','./js/admin_integridade.js'
 ];
 self.addEventListener('install',event=>{
   event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(SHELL)).catch(()=>{}));
