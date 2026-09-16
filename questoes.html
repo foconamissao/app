@@ -38,7 +38,7 @@
     <nav class="nav">
       <a data-nav="dashboard" href="./index.html">🏠 Início</a>
       <a data-nav="missao" href="./missao.html">🎯 Minha Missão</a>
-      <a data-nav="cronograma" href="./cronograma.html">📅 Cronograma</a>
+      <a data-nav="cronograma" href="./cronograma.html">📅 Cronograma</a><a data-nav="calendario" href="./calendario.html">🗓️ Calendário</a><a data-nav="revisao" href="./revisao.html">🔁 Revisar hoje</a>
       <a data-nav="questoes" href="./questoes.html">📝 Questões</a>
       <a data-nav="flashcards" href="./flashcards.html">🧠 Flashcards</a>
       <a data-nav="erros" href="./erros.html">📕 Caderno de Erros</a>
@@ -53,12 +53,16 @@
     <header class="topbar"><div><button id="mobileMenu" class="btn secondary mobile-menu">☰</button><h1 id="pageTitle">Questões</h1></div></header>
 
     <section id="questionSetup" class="card question-setup">
-      <div class="section-title question-title-row"><div><span class="eyebrow">BANCO DE QUESTÕES</span><h2>Monte sua sessão</h2></div><span id="availableCount" class="badge">Carregando...</span></div>
-      <div class="form-grid question-filter-grid">
-        <div class="field"><label>Disciplina</label><select id="filterDiscipline"><option value="">Todas</option></select></div>
-        <div class="field"><label>Assunto</label><select id="filterTopic"><option value="">Todos</option></select></div>
+      <div class="section-title question-title-row"><div><span class="eyebrow">BANCO DE QUESTÕES 2.0</span><h2>Monte sua sessão</h2></div><span id="availableCount" class="badge">Carregando...</span></div>
+      <div class="form-grid question-filter-grid advanced-question-filters">
+        <div class="field"><label>Disciplinas</label><select id="filterDiscipline" multiple size="5"></select><small class="field-help">Selecione uma ou várias. Sem seleção = todas.</small></div>
+        <div class="field"><label>Assuntos</label><select id="filterTopic" multiple size="5"></select><small class="field-help">A lista acompanha as disciplinas selecionadas.</small></div>
+        <div class="field"><label>Banca</label><select id="filterBoard"><option value="">Todas</option></select></div>
+        <div class="field"><label>Dificuldade</label><select id="filterDifficulty"><option value="">Todas</option><option value="1">Básica</option><option value="2">Básica</option><option value="3">Intermediária</option><option value="4">Avançada</option><option value="5">Avançada</option></select></div>
         <div class="field"><label>Quantidade</label><select id="filterQuantity"><option>10</option><option selected>20</option><option>30</option><option>50</option><option value="100">100</option></select></div>
-        <div class="field"><label>Tipo de sessão</label><select id="filterMode"><option value="todas">Todas as disponíveis</option><option value="nao_respondidas">Somente não respondidas</option><option value="erros">Somente questões que já errei</option><option value="favoritas">Somente favoritas</option></select></div><div class="field"><label>Distribuição</label><select id="filterDistribution"><option value="inteligente" selected>Prioridade inteligente</option><option value="aleatoria">Aleatória</option></select><small class="field-help">A plataforma prioriza automaticamente os conteúdos mais relevantes para o estudo.</small></div>
+        <div class="field"><label>Tipo de sessão</label><select id="filterMode"><option value="todas">Todas as disponíveis</option><option value="nao_respondidas">Somente inéditas</option><option value="erros">Somente questões que já errei</option><option value="favoritas">Somente marcadas para revisar</option></select></div>
+        <div class="field"><label>Distribuição</label><select id="filterDistribution"><option value="inteligente" selected>Prioridade inteligente</option><option value="aleatoria">Aleatória</option></select><small class="field-help">A plataforma organiza a sessão automaticamente.</small></div>
+        <div class="field session-options"><label>Opções</label><label class="checkline"><input id="shuffleAlternatives" type="checkbox"> Embaralhar alternativas</label><label class="checkline"><input id="sessionTimerEnabled" type="checkbox" checked> Exibir cronômetro</label></div>
       </div>
       <div class="question-setup-actions"><button id="startQuestions" class="btn" type="button">INICIAR SESSÃO</button></div>
       <div id="questionSetupNotice" class="notice hidden"></div>
@@ -67,9 +71,9 @@
     <section id="questionSession" class="hidden">
       <div class="question-session-head">
         <div><span id="questionMeta" class="eyebrow"></span><h2 id="questionCounter">Questão 1 de 20</h2></div>
-        <div class="question-session-actions"><button id="favoriteQuestion" class="btn secondary favorite-btn" type="button" aria-pressed="false">☆ Favoritar</button><button id="exitSession" class="btn secondary" type="button">ENCERRAR</button></div>
+        <div class="question-session-actions"><span id="sessionTimer" class="badge">00:00</span><button id="favoriteQuestion" class="btn secondary favorite-btn" type="button" aria-pressed="false">📌 Revisar depois</button><button id="exitSession" class="btn secondary" type="button">FINALIZAR</button></div>
       </div>
-      <div class="question-progress"><i id="questionProgressBar"></i></div>
+      <div class="question-progress"><i id="questionProgressBar"></i></div><div class="session-live-stats"><span>✅ <b id="liveHits">0</b></span><span>❌ <b id="liveErrors">0</b></span><span>🎯 <b id="liveAccuracy">0%</b></span><span>⏱ <b id="liveAvg">0s</b> média</span></div>
       <article class="card question-card">
         <div id="questionStatement" class="question-statement"></div>
         <div id="questionAlternatives" class="question-alternatives"></div>
@@ -85,9 +89,9 @@
         <div class="grid stats question-result-stats">
           <div class="stat"><span>📝 Respondidas</span><b id="resultTotal">0</b></div>
           <div class="stat"><span>✅ Acertos</span><b id="resultHits">0</b></div>
-          <div class="stat"><span>🎯 Aproveitamento</span><b id="resultAccuracy">0%</b></div>
+          <div class="stat"><span>🎯 Aproveitamento</span><b id="resultAccuracy">0%</b></div><div class="stat"><span>⏱ Tempo total</span><b id="resultTime">0min</b></div>
         </div>
-        <div class="form-actions"><button id="newSession" class="btn" type="button">NOVA SESSÃO</button><a class="btn secondary" href="./erros.html">VER CADERNO DE ERROS</a></div>
+        <div id="resultBreakdown" class="result-breakdown"></div><div class="form-actions"><button id="newSession" class="btn" type="button">NOVA SESSÃO</button><a class="btn secondary" href="./erros.html">VER CADERNO DE ERROS</a></div>
       </div>
     </section>
   </main>
