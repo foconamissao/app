@@ -1,2 +1,21 @@
 .mobile-menu{display:none}.overlay{display:none}@media(max-width:900px){.app{display:block}.sidebar{position:fixed;z-index:30;left:-285px;width:270px;transition:.2s}.sidebar.open{left:0}.overlay.open{display:block;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:20}.main{padding:20px}.mobile-menu{display:inline-flex}.stats{grid-template-columns:repeat(2,1fr)}.two-col{grid-template-columns:1fr}}@media(max-width:560px){.stats,.form-grid{grid-template-columns:1fr}.topbar h1{font-size:22px}.main{padding:16px}.card{padding:16px}}
 @media(max-width:850px){.admin-summary{grid-template-columns:1fr}.admin-hero{align-items:flex-start}.actions{min-width:155px}.admin-tabs .tab{flex:1 1 auto}}
+
+@media(max-width:1050px){
+  .topbar{align-items:flex-start}
+  .topbar-right{flex-direction:column-reverse;align-items:flex-end;gap:7px}
+  .header-datetime{font-size:12px}
+}
+@media(max-width:700px){
+  .topbar{gap:12px}
+  .topbar-right{max-width:62%}
+  .header-datetime{white-space:normal;line-height:1.35}
+  .account-name{max-width:110px}
+}
+@media(max-width:480px){
+  .topbar{display:grid;grid-template-columns:1fr auto;align-items:start}
+  .topbar-right{max-width:none;gap:6px}
+  .header-datetime{grid-row:2;font-size:11px;max-width:210px}
+  .account-avatar{width:34px;height:34px}
+  .account-gear{width:34px;height:34px}
+}
