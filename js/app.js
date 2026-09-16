@@ -1,7 +1,7 @@
 import {requireAuth,getProfile,signOut,avatarUrl} from './auth.js';
 import {mountNotifications} from './notifications.js';
 
-const labels={dashboard:'Início',missao:'Minha Missão',cronograma:'Cronograma',calendario:'Calendário',plano:'Plano do dia',revisao:'Revisar hoje',questoes:'Questões',flashcards:'Flashcards',erros:'Caderno de Erros',simulados:'Simulados',desempenho:'Desempenho',ranking:'Ranking',objetivos:'Meu objetivo',admin:'Administração',perfil:'Meu perfil'};
+const labels={dashboard:'Início',missao:'Minha Missão',cronograma:'Cronograma',calendario:'Calendário',plano:'Plano do dia',revisao:'Revisar hoje',questoes:'Questões',flashcards:'Flashcards',erros:'Caderno de Erros',simulados:'Simulados',desempenho:'Desempenho',ranking:'Ranking',objetivos:'Meu objetivo',ciclo:'Ciclo de estudo',semana:'Minha semana',sessao:'Sessão de estudo',retafinal:'Reta final',admin:'Administração',perfil:'Meu perfil'};
 function initials(name=''){return name.trim().split(/\s+/).slice(0,2).map(x=>x[0]).join('').toUpperCase()||'FM'}
 function formatNow(date=new Date()){const d=new Intl.DateTimeFormat('pt-BR',{weekday:'long',day:'2-digit',month:'long',year:'numeric'}).format(date);const t=new Intl.DateTimeFormat('pt-BR',{hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false}).format(date);return `${d}, ${t}`}
 function mountDateTime(container){const clock=document.createElement('time');clock.className='header-datetime';clock.setAttribute('aria-label','Data e hora atuais');const update=()=>{const now=new Date();clock.dateTime=now.toISOString();clock.textContent=formatNow(now)};update();const timer=setInterval(update,1000);window.addEventListener('pagehide',()=>clearInterval(timer),{once:true});container.appendChild(clock)}
