@@ -11,7 +11,7 @@ function show(text, type = 'info') {
 }
 
 if (!isConfigured()) {
-  show('A conexão com o Supabase ainda não está configurada.', 'error');
+  show('A plataforma ainda não está pronta para receber acessos.', 'error');
   if (button) button.disabled = true;
 } else {
   const { data } = await sb.auth.getSession();
@@ -47,7 +47,7 @@ form?.addEventListener('submit', async (event) => {
     await sb.auth.signOut();
     button.disabled = false;
     button.textContent = 'ENTRAR';
-    show('Sua conta existe, mas o perfil da plataforma não foi criado. Verifique o trigger do Supabase.', 'error');
+    show('Não foi possível concluir seu acesso. Procure a administração.', 'error');
     return;
   }
 

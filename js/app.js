@@ -8,7 +8,7 @@ export async function boot(page) {
 
   const profile = await getProfile(user);
   if (!profile) {
-    document.body.innerHTML = '<main class="login-shell"><section class="login-card"><h1>Perfil não encontrado</h1><p>O login funcionou, mas não existe um perfil correspondente na tabela profiles.</p><a class="btn" href="./login.html">VOLTAR AO LOGIN</a></section></main>';
+    document.body.innerHTML = '<main class="login-shell"><section class="login-card"><h1>Perfil não encontrado</h1><p>Não foi possível carregar os dados do seu perfil. Procure a administração.</p><a class="btn" href="./login.html">VOLTAR AO LOGIN</a></section></main>';
     return null;
   }
   if (!profile.ativo) {
