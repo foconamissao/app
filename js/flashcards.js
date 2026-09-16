@@ -1,5 +1,5 @@
 import {sb} from './supabase.js';
-import {prdScore, prdLabel, weightedSample} from './prd.js';
+import {priorityScore, weightedSample} from './priority.js';
 
 const $=s=>document.querySelector(s);
 const esc=(v='')=>String(v).replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
@@ -24,7 +24,7 @@ function indexReviews(){
 }
 function maxPeso(){return Math.max(1,...cards.map(c=>Number(c.disciplinas?.peso||1)))}
 function scoreCard(c){
- const base=prdScore(c,maxPeso());
+ const base=priorityScore(c,maxPeso());
  const hist=historyByCard.get(Number(c.id))||[];
  const recent=hist.slice(-6);
  const hard=recent.filter(r=>Number(r.dificuldade)<=2).length;
@@ -94,12 +94,12 @@ function renderReview(){
  if(pos>=queue.length)return finishSession();
  const c=queue[pos],s=scoreCard(c); revealed=false;
  $('#reviewCounter').textContent=`${pos+1} / ${queue.length}`; $('#reviewBar').style.width=`${Math.round((pos/Math.max(1,queue.length))*100)}%`;
- $('#reviewMeta').innerHTML=`<span class="badge">${esc(c.disciplinas?.nome||'')}</span>${c.assuntos?.nome?`<span class="badge">${esc(c.assuntos.nome)}</span>`:''}<span class="badge">${sourceLabel(c)}</span><span class="badge">${prdLabel(s)} · ${s.toFixed(2)}</span>`;
+ $('#reviewMeta').innerHTML=`<span class="badge">${esc(c.disciplinas?.nome||'')}</span>${c.assuntos?.nome?`<span class="badge">${esc(c.assuntos.nome)}</span>`:''}<span class="badge">${sourceLabel(c)}</span>`;
  $('#flashFront').textContent=c.frente; $('#flashBack').innerHTML=`<div class="flash-answer-label">RESPOSTA</div><div>${esc(c.verso).replace(/\n/g,'<br>')}</div>`; $('#flashBack').classList.add('hidden'); $('#showAnswer').classList.remove('hidden'); $('#ratingButtons').classList.add('hidden');
 }
 async function rate(rating){
  const c=queue[pos],calc=nextInterval(c,rating),buttons=$('#ratingButtons'); buttons.querySelectorAll('button').forEach(b=>b.disabled=true);
- const payload={user_id:ctx.user.id,flashcard_id:c.id,dificuldade:rating,proxima_revisao:calc.next,intervalo_dias:calc.interval,sequencia:calc.seq,prd_score:calc.score};
+ const payload={user_id:ctx.user.id,flashcard_id:c.id,dificuldade:rating,proxima_revisao:calc.next,intervalo_dias:calc.interval,sequencia:calc.seq};
  const {data,error}=await sb.from('flashcard_revisoes').insert(payload).select().single();
  buttons.querySelectorAll('button').forEach(b=>b.disabled=false);
  if(error){notice('Não foi possível registrar a revisão. Tente novamente.','error');return}
@@ -127,7 +127,7 @@ function finishSession(){
 function startSession(){
  let due=filteredCards().filter(isDue); if(!due.length)return notice('Não há flashcards pendentes com estes filtros.','error');
  const qty=$('#flashQuantity').value==='todos'?due.length:Number($('#flashQuantity').value||20);
- due=weightedSample(due,Math.min(qty,due.length),c=>Math.max(.15,scoreCard(c)));
+ due=weightedSample(due,Math.min(qty,due.length),c=>Math.max(.15,scoreCard(c))*Math.max(.1,Number(c.disciplinas?.peso)||1));
  queue=due;pos=0;sessionStats={total:0,ratings:[0,0,0,0]};requeued=new Map();renderReview();
 }
 function openPersonalEditor(card){
@@ -143,8 +143,8 @@ async function load(){
  const uid=ctx.user.id;
  const [{data:c,error:ce},{data:r,error:re},{data:d},{data:t}]=await Promise.all([
    sb.from('flashcards').select('id,disciplina_id,assunto_id,frente,verso,user_id,recorrencia,dificuldade,created_at,disciplinas(id,nome,peso),assuntos(id,nome,recorrencia,dificuldade)').eq('ativo',true).order('created_at'),
-   sb.from('flashcard_revisoes').select('id,flashcard_id,dificuldade,proxima_revisao,reviewed_at,intervalo_dias,sequencia,prd_score').eq('user_id',uid).order('reviewed_at'),
-   sb.from('disciplinas').select('id,nome,peso').eq('ativo',true).order('ordem').order('nome'),
+   sb.from('flashcard_revisoes').select('id,flashcard_id,dificuldade,proxima_revisao,reviewed_at,intervalo_dias,sequencia').eq('user_id',uid).order('reviewed_at'),
+   sb.from('disciplinas').select('id,nome,peso').eq('ativo',true).order('peso',{ascending:false}).order('nome'),
    sb.from('assuntos').select('id,nome,disciplina_id,recorrencia,dificuldade').eq('ativo',true).order('nome')
  ]);
  if(ce||re){$('#flashSetup').innerHTML='<div class="empty">Não foi possível carregar seus flashcards.</div>';return}

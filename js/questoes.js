@@ -1,5 +1,5 @@
 import {sb} from './supabase.js';
-import {prdScore,prdLabel,weightedSample} from './prd.js';
+import {priorityScore,weightedSample} from './priority.js';
 
 const $ = (s) => document.querySelector(s);
 const esc = (v='') => String(v).replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
@@ -49,7 +49,7 @@ function fillTopics(){
 
 async function loadBase(){
   const [{data:disc,error:de},{data:top,error:te},{data:q,error:qe},{data:fav,error:fe},{data:errs,error:ee}]=await Promise.all([
-    sb.from('disciplinas').select('id,nome,peso').eq('ativo',true).order('ordem').order('nome'),
+    sb.from('disciplinas').select('id,nome,peso').eq('ativo',true).order('peso',{ascending:false}).order('nome'),
     sb.from('assuntos').select('id,disciplina_id,nome,recorrencia,dificuldade').eq('ativo',true).order('nome'),
     sb.from('questoes').select('id,disciplina_id,assunto_id,subassunto,banca,concurso,ano,recorrencia,dificuldade,enunciado,alternativa_a,alternativa_b,alternativa_c,alternativa_d,alternativa_e,correta,comentario,ponto_fixacao,base_legal,palavra_chave,macete,disciplinas(nome,peso),assuntos(nome,recorrencia,dificuldade)').eq('ativo',true),
     sb.from('favoritos').select('questao_id').eq('user_id',state.ctx.user.id),
@@ -103,9 +103,7 @@ function showOnly(id){
 function currentQuestion(){return state.session[state.index]||null;}
 
 function metaText(q){
-  const maxPeso=Math.max(1,...state.disciplines.map(d=>Number(d.peso)||1));
-  const score=prdScore(q,maxPeso);
-  const parts=[q.disciplinas?.nome,q.assuntos?.nome,q.subassunto,q.banca,q.concurso,q.ano,`${prdLabel(score)} ${score.toFixed(2)}`].filter(Boolean);
+  const parts=[q.disciplinas?.nome,q.assuntos?.nome,q.subassunto,q.banca,q.concurso,q.ano].filter(Boolean);
   return parts.join(' · ');
 }
 
@@ -210,10 +208,10 @@ async function startSession(){
   try{
     const list=await filteredQuestions();
     const qty=Math.max(1,Number($('#filterQuantity').value)||20);
-    const distribution=$('#filterDistribution')?.value||'prd';
-    if(distribution==='prd'){
+    const distribution=$('#filterDistribution')?.value||'inteligente';
+    if(distribution==='inteligente'){
       const maxPeso=Math.max(1,...state.disciplines.map(d=>Number(d.peso)||1));
-      state.session=weightedSample(list,qty,q=>{const base=Math.pow(prdScore(q,maxPeso),2);const hist=state.errorCounts.get(Number(q.id));const reforco=hist?1+Math.min(1.25,(hist.erros||0)*.18)*(hist.dominado?.65:1):1;return base*reforco;});
+      state.session=weightedSample(list,qty,q=>{const base=Math.pow(priorityScore(q,maxPeso),2);const peso=Math.max(.1,Number(q.disciplinas?.peso)||1);const hist=state.errorCounts.get(Number(q.id));const reforco=hist?1+Math.min(1.25,(hist.erros||0)*.18)*(hist.dominado?.65:1):1;return base*peso*reforco;});
     }else state.session=shuffle(list).slice(0,qty);
     if(!state.session.length){notice('Nenhuma questão encontrada com esses filtros.');return;}
     state.index=0;state.hits=0;

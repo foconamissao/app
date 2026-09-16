@@ -30,7 +30,7 @@ function renderActivities(){
 }
 async function refresh(){
   const [dr,tr,sr,ar]=await Promise.all([
-    sb.from('disciplinas').select('*').order('ordem').order('nome'),
+    sb.from('disciplinas').select('*').order('peso',{ascending:false}).order('nome'),
     sb.from('assuntos').select('*').order('nome'),
     sb.from('cronogramas').select('*').order('data_inicio',{ascending:false}),
     sb.from('atividades').select('*,disciplinas(nome),assuntos(nome),cronogramas(titulo)').order('data',{ascending:false}).order('ordem').limit(500)

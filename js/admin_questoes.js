@@ -59,7 +59,7 @@ function render(){
 
 async function load(){
   const [{data:d,error:de},{data:t,error:te},{data:q,error:qe}]=await Promise.all([
-    sb.from('disciplinas').select('*').order('ordem').order('nome'),
+    sb.from('disciplinas').select('*').order('peso',{ascending:false}).order('nome'),
     sb.from('assuntos').select('*').order('nome'),
     sb.from('questoes').select('*,disciplinas(nome),assuntos(nome)').order('created_at',{ascending:false}).limit(500)
   ]);
