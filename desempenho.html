@@ -1,1 +1,57 @@
-<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Desempenho — Missão PE</title><link rel="stylesheet" href="./css/variables.css"><link rel="stylesheet" href="./css/global.css"><link rel="stylesheet" href="./css/responsive.css"></head><body><div class="overlay"></div><div class="app"><aside class="sidebar"><div class="brand"><div class="brand-mark brand-logo"><img src="./assets/logo-missao-pe.png" alt="Missão PE"></div><div><strong>FOCO NA MISSÃO</strong><small>MISSÃO PE</small></div></div><nav class="nav"><a data-nav="dashboard" href="./index.html">🏠 Início</a><a data-nav="missao" href="./missao.html">🎯 Minha Missão</a><a data-nav="cronograma" href="./cronograma.html">📅 Cronograma</a><a data-nav="questoes" href="./questoes.html">📝 Questões</a><a data-nav="flashcards" href="./flashcards.html">🧠 Flashcards</a><a data-nav="erros" href="./erros.html">📕 Caderno de Erros</a><a data-nav="simulados" href="./simulados.html">🏆 Simulados</a><a data-nav="desempenho" href="./desempenho.html">📊 Desempenho</a><a data-nav="ranking" href="./ranking.html">👥 Ranking</a><div class="admin"><a class="hidden" data-admin data-nav="admin" href="./admin.html">⚙ Administração</a><a href="#" id="logout">🚪 Sair</a></div></nav></aside><main class="main"><header class="topbar"><div><button id="mobileMenu" class="btn secondary mobile-menu">☰</button><h1 id="pageTitle">Desempenho</h1></div><div class="toolbar"><span id="userName" class="muted"></span><div class="avatar">◉</div></div></header><section class="grid stats"><div class="card stat"><span>Questões respondidas</span><b>0</b></div><div class="card stat"><span>Acertos</span><b>0</b></div><div class="card stat"><span>Aproveitamento</span><b>0%</b></div><div class="card stat"><span>Tempo registrado</span><b>0h</b></div></section><div class="section-title"><h2>Evolução</h2></div><section class="card empty">Os gráficos serão alimentados pelos seus resultados na plataforma.</section></main></div><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script type="module">import {boot} from './js/app.js'; import {loadGeneric} from './js/generic.js'; const ctx=await boot('desempenho'); if(ctx) loadGeneric(ctx,'desempenho');</script></body></html>
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Desempenho — Missão PE</title>
+<link rel="stylesheet" href="./css/variables.css">
+<link rel="stylesheet" href="./css/global.css">
+<link rel="stylesheet" href="./css/responsive.css">
+</head>
+<body>
+<div class="overlay"></div>
+<div class="app">
+<aside class="sidebar">
+  <div class="brand"><div class="brand-mark brand-logo"><img src="./assets/logo-missao-pe.png" alt="Missão PE"></div><div><strong>FOCO NA MISSÃO</strong><small>MISSÃO PE</small></div></div>
+  <nav class="nav">
+    <a data-nav="dashboard" href="./index.html">🏠 Início</a><a data-nav="missao" href="./missao.html">🎯 Minha Missão</a><a data-nav="cronograma" href="./cronograma.html">📅 Cronograma</a><a data-nav="questoes" href="./questoes.html">📝 Questões</a><a data-nav="flashcards" href="./flashcards.html">🧠 Flashcards</a><a data-nav="erros" href="./erros.html">📕 Caderno de Erros</a><a data-nav="simulados" href="./simulados.html">🏆 Simulados</a><a data-nav="desempenho" href="./desempenho.html">📊 Desempenho</a><a data-nav="ranking" href="./ranking.html">👥 Ranking</a>
+    <div class="admin"><a class="hidden" data-admin data-nav="admin" href="./admin.html">⚙ Administração</a><a href="#" id="logout">🚪 Sair</a></div>
+  </nav>
+</aside>
+<main class="main">
+<header class="topbar"><div><button id="mobileMenu" class="btn secondary mobile-menu">☰</button><h1 id="pageTitle">Desempenho</h1></div><div class="toolbar"><span id="userName" class="muted"></span></div></header>
+
+<div class="section-title performance-title"><div><span class="eyebrow">SEU PROGRESSO</span><h2>Desempenho</h2><p class="muted">Acompanhe sua evolução e identifique onde vale concentrar seus estudos.</p></div><div class="performance-period"><label for="performancePeriod">Período</label><select id="performancePeriod"><option value="7">Últimos 7 dias</option><option value="30" selected>Últimos 30 dias</option><option value="90">Últimos 90 dias</option><option value="all">Todo o histórico</option></select></div></div>
+<div id="performanceNotice" class="notice hidden"></div>
+
+<section class="grid performance-stats">
+  <div class="card stat"><span>Questões respondidas</span><b id="perfQuestions">—</b><small id="perfQuestionsDelta"></small></div>
+  <div class="card stat"><span>Aproveitamento</span><b id="perfAccuracy">—</b><small id="perfAccuracyDelta"></small></div>
+  <div class="card stat"><span>Tempo em questões</span><b id="perfTime">—</b><small id="perfAvgTime"></small></div>
+  <div class="card stat"><span>Flashcards revisados</span><b id="perfFlashcards">—</b><small id="perfFlashMemory"></small></div>
+</section>
+
+<section class="grid performance-grid-two">
+  <div class="card performance-card"><div class="performance-card-head"><div><span class="eyebrow">EVOLUÇÃO</span><h3>Questões por dia</h3></div><span class="muted" id="evolutionSummary"></span></div><div id="evolutionChart" class="evolution-chart"></div></div>
+  <div class="card performance-card"><div class="performance-card-head"><div><span class="eyebrow">REVISÕES</span><h3>Flashcards</h3></div></div><div id="flashSummary" class="performance-summary-list"></div></div>
+</section>
+
+<section class="grid performance-grid-two">
+  <div class="card performance-card"><div class="performance-card-head"><div><span class="eyebrow">MATÉRIAS</span><h3>Desempenho por disciplina</h3></div></div><div id="disciplinePerformance" class="performance-bars"></div></div>
+  <div class="card performance-card"><div class="performance-card-head"><div><span class="eyebrow">NÍVEL</span><h3>Desempenho por dificuldade</h3></div></div><div id="difficultyPerformance" class="performance-bars"></div></div>
+</section>
+
+<section class="card performance-card"><div class="performance-card-head"><div><span class="eyebrow">ASSUNTOS</span><h3>Desempenho detalhado</h3></div><span class="muted">Mínimo de 1 resposta</span></div><div class="table-wrap"><table class="performance-table"><thead><tr><th>Disciplina</th><th>Assunto</th><th>Questões</th><th>Acertos</th><th>Aproveitamento</th><th>Tempo médio</th></tr></thead><tbody id="topicPerformance"></tbody></table></div></section>
+
+<section class="grid performance-grid-two">
+  <div class="card performance-card"><div class="performance-card-head"><div><span class="eyebrow">PONTOS FORTES</span><h3>Bom domínio</h3></div></div><div id="strongPoints" class="insight-list"></div></div>
+  <div class="card performance-card"><div class="performance-card-head"><div><span class="eyebrow">REFORÇO</span><h3>Assuntos que merecem atenção</h3></div></div><div id="weakPoints" class="insight-list"></div></div>
+</section>
+
+<section class="card performance-card"><div class="performance-card-head"><div><span class="eyebrow">ERROS RECORRENTES</span><h3>Questões que mais voltaram ao caderno</h3></div></div><div id="recurringErrors" class="recurring-errors"></div></section>
+</main>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script type="module">import {boot} from './js/app.js'; import {setupDesempenho} from './js/desempenho.js'; const ctx=await boot('desempenho'); if(ctx) setupDesempenho(ctx);</script>
+</body>
+</html>
