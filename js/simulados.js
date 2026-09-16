@@ -35,9 +35,23 @@ function renderList(){
   }).join('');
 }
 async function startSimulation(simId){
+  const btn=document.querySelector(`[data-start-sim="${simId}"]`);
+  const oldText=btn?.textContent;
+  if(btn){btn.disabled=true;btn.textContent='ABRINDO...'}
   const {data,error}=await sb.rpc('iniciar_ou_retomar_simulado',{p_simulado_id:Number(simId)});
-  if(error){console.error(error);return notice(error.message?.includes('ENCERRADO')?'Este simulado não está mais disponível.':'Não foi possível iniciar o simulado.','error')}
-  const id=Number(data?.tentativa_id||data?.id||data); if(!id)return notice('Não foi possível abrir a tentativa.','error'); await loadAttempt(id);
+  if(btn){btn.disabled=false;btn.textContent=oldText||'INICIAR'}
+  if(error){
+    console.error(error);
+    const msg=String(error.message||'');
+    if(msg.includes('SIMULADO_SEM_QUESTOES')) return notice('Este simulado ainda não possui questões vinculadas. A administração precisa revisar a importação.','error');
+    if(msg.includes('SIMULADO_NAO_LIBERADO')) return notice('Este simulado ainda não foi liberado.','error');
+    if(msg.includes('SIMULADO_ENCERRADO')) return notice('Este simulado não está mais disponível.','error');
+    if(msg.includes('TENTATIVA_ENCERRADA')) return notice('Você já concluiu a tentativa permitida para este simulado.','error');
+    return notice('Não foi possível iniciar o simulado. Tente novamente.','error');
+  }
+  const id=Number(data?.tentativa_id||data?.id||data);
+  if(!id)return notice('Não foi possível abrir a tentativa.','error');
+  await loadAttempt(id);
 }
 async function loadAttempt(attemptId){
   stopTimer();

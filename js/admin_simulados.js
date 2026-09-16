@@ -106,7 +106,13 @@ function renderPreview(){
     return `<tr><td><input type="checkbox" data-sim-select="${i}" ${selected.has(i)?'checked':''} ${errs.length?'disabled':''}></td><td>${i+1}</td><td><b>${esc(q.disciplina||'—')}</b><small class="table-sub">${esc(q.assunto||'—')}</small></td><td>${esc(String(q.enunciado||'').slice(0,120))}${String(q.enunciado||'').length>120?'…':''}</td><td>${Number(q.peso_simulado??q.peso??q.peso_disciplina??1).toFixed(1)}</td><td>${errs.length?`<span class="badge off">${esc(errs.join('; '))}</span>`:dup?'<span class="badge wait">Já existe no banco</span>':'<span class="badge ok">Pronta</span>'}</td></tr>`;
   }).join('');
   const dist=Object.entries(byDisc).sort((a,b)=>b[1]-a[1]).map(([d,n])=>`${esc(d)}: <b>${n}</b>`).join(' · ');
-  const m=parsed.simulado; summary.innerHTML=`<div class="sim-import-summary"><div><span class="eyebrow">SIMULADO IDENTIFICADO</span><h3>${esc(m.titulo)}</h3><p class="muted">${parsed.questoes.length} questões · ${Number(m.duracao_minutos||0)} min · ${flash} flashcard(s) sugerido(s)</p></div><div class="sim-dist">${dist}</div><div>${dups?`<span class="badge wait">${dups} questão(ões) já existentes serão reutilizadas</span>`:''}${problems?` <span class="badge off">${problems} com problema estrutural</span>`:' <span class="badge ok">Estrutura válida</span>'}</div></div>`;
+  const m=parsed.simulado;
+  const inicio=m.data_liberacao?new Date(m.data_liberacao).toLocaleString('pt-BR'):'Imediata';
+  const fim=m.data_encerramento?new Date(m.data_encerramento).toLocaleString('pt-BR'):'Sem encerramento';
+  const correcao=m.correcao_modo==='encerramento'?'Após o encerramento':'Após finalizar';
+  const tentativas=m.tentativas_multiplas?'Múltiplas':'Única';
+  const ranking=m.mostrar_ranking===false?'Oculto':'Visível';
+  summary.innerHTML=`<div class="sim-import-summary"><div><span class="eyebrow">SIMULADO IDENTIFICADO</span><h3>${esc(m.titulo)}</h3><p class="muted">${parsed.questoes.length} questões · ${Number(m.duracao_minutos||0)} min · ${flash} flashcard(s) sugerido(s)</p></div><div class="sim-preview-meta"><span><b>Liberação:</b> ${esc(inicio)}</span><span><b>Encerramento:</b> ${esc(fim)}</span><span><b>Tentativa:</b> ${esc(tentativas)}</span><span><b>Correção:</b> ${esc(correcao)}</span><span><b>Ranking:</b> ${esc(ranking)}</span></div><div class="sim-dist">${dist}</div><div>${dups?`<span class="badge wait">${dups} questão(ões) já existentes serão reutilizadas</span>`:''}${problems?` <span class="badge off">${problems} com problema estrutural</span>`:' <span class="badge ok">Estrutura válida</span>'}</div></div>`;
   box.innerHTML=`<div class="table-wrap"><table><thead><tr><th></th><th>#</th><th>Classificação</th><th>Enunciado</th><th>Peso</th><th>Validação</th></tr></thead><tbody>${rows}</tbody></table></div>`;
   $('#importSimulation').disabled=!Array.from(selected).some(i=>!validateQuestion(parsed.questoes[i]).length);
 }
@@ -116,7 +122,7 @@ async function importPackage(){
   const payload={versao:parsed.versao,simulado:parsed.simulado,questoes:chosen};
   const {data,error}=await sb.rpc('importar_simulado_oficial',{p_payload:payload}); btn.disabled=false;btn.textContent='IMPORTAR SIMULADO';
   if(error){console.error(error);return notice('Não foi possível importar o simulado. Confira o pacote e tente novamente.','error')}
-  const r=data||{}; notice(`Simulado importado: ${r.questoes_vinculadas||chosen.length} questões. ${r.questoes_novas||0} nova(s) incluída(s) no banco e ${r.questoes_reutilizadas||0} reutilizada(s).`);
+  const r=data||{}; notice(`Simulado importado: ${r.questoes_vinculadas ?? chosen.length} questões. ${r.questoes_novas ?? 0} nova(s) incluída(s) no banco e ${r.questoes_reutilizadas ?? 0} reutilizada(s).`);
   parsed=null;selected.clear();$('#simulationJson').value='';renderPreview();await loadExistingQuestions();await refresh();
 }
 function copyTemplate(){
