@@ -134,7 +134,7 @@ export async function setupAdminSimulados(){
   await Promise.all([refresh(),loadExistingQuestions()]); resetForm(); renderPreview();
   $('#simulationForm')?.addEventListener('submit',saveSimulation); $('#cancelSimulationEdit')?.addEventListener('click',resetForm);
   $('#analyzeSimulation')?.addEventListener('click',parsePackage); $('#importSimulation')?.addEventListener('click',importPackage); $('#copySimulationTemplate')?.addEventListener('click',copyTemplate); $('#clearSimulationJson')?.addEventListener('click',()=>{parsed=null;selected.clear();$('#simulationJson').value='';renderPreview()});
-  $('#simulationPreview')?.addEventListener('change',e=>{const i=Number(e.target.dataset.simSelect);if(!Number.isInteger(i))return;e.target.checked?selected.add(i):selected.delete(i);$('#importSimulation').disabled=!selected.size});
+  $('#simulationPreview')?.addEventListener('change',e=>{const i=Number(e.target.dataset.simSelect);if(!Number.isInteger(i))return;e.target.checked?selected.add(i):selected.delete(i);$('#importSimulation').disabled=!Array.from(selected).some(j=>parsed&&!validateQuestion(parsed.questoes[j]).length)});
   $('#adminSimulationList')?.addEventListener('click',async e=>{
     const edit=e.target.dataset.editSim,toggle=e.target.dataset.toggleSim,del=e.target.dataset.deleteSim;
     if(edit)return editSimulation(edit);
