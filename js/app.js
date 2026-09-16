@@ -9,3 +9,33 @@ function mountAccount(profile,container){const wrap=document.createElement('div'
 function mountHeader(profile,ctx){const top=document.querySelector('.topbar');if(!top)return;top.querySelectorAll('.toolbar,#userName,.avatar,.account-wrap,.topbar-right,.header-datetime,.notif-wrap').forEach(el=>el.remove());const right=document.createElement('div');right.className='topbar-right';mountDateTime(right);mountAccount(profile,right);top.appendChild(right);mountNotifications(ctx,right)}
 function mountMobileNav(page){if(document.querySelector('.mobile-bottom-nav'))return;const nav=document.createElement('nav');nav.className='mobile-bottom-nav';nav.setAttribute('aria-label','Navegação principal');nav.innerHTML=`<a href="./index.html" class="${page==='dashboard'?'active':''}"><span>🏠</span><small>Início</small></a><a href="./missao.html" class="${page==='missao'?'active':''}"><span>🎯</span><small>Missão</small></a><a href="./questoes.html" class="${page==='questoes'?'active':''}"><span>📝</span><small>Questões</small></a><a href="./flashcards.html" class="${page==='flashcards'?'active':''}"><span>🧠</span><small>Cards</small></a><button type="button" data-more><span>☰</span><small>Mais</small></button>`;document.body.appendChild(nav);nav.querySelector('[data-more]').addEventListener('click',()=>{document.querySelector('.sidebar')?.classList.add('open');document.querySelector('.overlay')?.classList.add('open')})}
 export async function boot(page){const user=await requireAuth();if(!user)return null;const profile=await getProfile(user);if(!profile){document.body.innerHTML='<main class="login-shell"><section class="login-card"><h1>Cadastro não encontrado</h1><p>Não foi possível carregar seu cadastro.</p><a class="btn" href="./login.html">VOLTAR</a></section></main>';return null}if(profile.status!=='aprovado'||!profile.ativo){await signOut();return null}document.querySelector('#pageTitle')?.replaceChildren(document.createTextNode(labels[page]||'Missão PE'));document.querySelector(`[data-nav="${page}"]`)?.classList.add('active');if(profile.role==='admin')document.querySelectorAll('[data-admin]').forEach(el=>el.classList.remove('hidden'));else if(page==='admin'){location.href='./index.html';return null}const ctx={user,profile};mountHeader(profile,ctx);mountMobileNav(page);document.querySelector('#logout')?.addEventListener('click',signOut);const side=document.querySelector('.sidebar'),overlay=document.querySelector('.overlay');document.querySelector('#mobileMenu')?.addEventListener('click',()=>{side?.classList.toggle('open');overlay?.classList.toggle('open')});overlay?.addEventListener('click',()=>{side?.classList.remove('open');overlay?.classList.remove('open')});return ctx}
+
+function markLoadFailure(page,error){
+  console.error(`[Missão PE] Falha em ${page}:`,error);
+  document.querySelectorAll('.empty,.loading').forEach(el=>{
+    if(/carregando|preparando|buscando|analisando/i.test(el.textContent||'')){
+      el.textContent='Não foi possível carregar estes dados. Tente atualizar a página.';
+    }
+  });
+  const main=document.querySelector('.main');
+  if(main&&!document.querySelector('#pageLoadError')){
+    const box=document.createElement('div');box.id='pageLoadError';box.className='notice error';
+    box.style.margin='16px 0';
+    box.textContent='Parte desta página não pôde ser carregada. Atualize a página; se persistir, verifique a conexão e a versão publicada.';
+    main.prepend(box);
+  }
+}
+
+export async function runPage(page,loader){
+  try{
+    const ctx=await boot(page);
+    if(!ctx)return null;
+    await loader(ctx);
+    window.__FM_PAGE_READY=true;
+    return ctx;
+  }catch(error){
+    markLoadFailure(page,error);
+    window.__FM_PAGE_READY=true;
+    return null;
+  }
+}

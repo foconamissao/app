@@ -1,14 +1,12 @@
-const CACHE='missao-pe-shell-v4.0.0';
-const SHELL=[
-  './','./login.html','./plano.html','./objetivos.html','./ciclo.html','./semana.html','./sessao.html','./reta-final.html','./cadastro.html','./index.html','./missao.html','./cronograma.html','./calendario.html','./revisao.html',
-  './questoes.html','./flashcards.html','./erros.html','./simulados.html','./desempenho.html',
-  './ranking.html','./perfil.html','./admin.html',
+const CACHE='missao-pe-static-v4.0.1';
+const STATIC=[
   './css/variables.css','./css/global.css','./css/responsive.css',
-  './assets/logo-missao-pe.png','./assets/icon-192.png','./assets/icon-512.png','./assets/apple-touch-icon.png',
-  './js/pwa.js','./js/ciclo.js','./js/semana.js','./js/sessao.js','./js/reta-final.js','./js/plano.js','./js/objetivos.js','./js/admin_qualidade.js','./js/admin_editais.js','./js/app.js','./js/notifications.js','./js/dashboard.js','./js/calendario.js','./js/revisao.js','./js/profile_stats.js','./js/admin_acompanhamento.js','./js/admin.js','./js/admin_integridade.js'
+  './assets/logo-missao-pe.png','./assets/icon-192.png','./assets/icon-512.png',
+  './assets/icon-maskable-192.png','./assets/icon-maskable-512.png','./assets/apple-touch-icon.png',
+  './assets/favicon-32.png','./assets/favicon.ico'
 ];
 self.addEventListener('install',event=>{
-  event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(SHELL)).catch(()=>{}));
+  event.waitUntil(caches.open(CACHE).then(c=>c.addAll(STATIC)).catch(()=>{}));
   self.skipWaiting();
 });
 self.addEventListener('activate',event=>{
@@ -18,12 +16,22 @@ self.addEventListener('activate',event=>{
 self.addEventListener('fetch',event=>{
   if(event.request.method!=='GET')return;
   const url=new URL(event.request.url);
-  if(url.origin!==location.origin)return;
-  event.respondWith(
-    fetch(event.request).then(response=>{
-      const copy=response.clone();
-      caches.open(CACHE).then(cache=>cache.put(event.request,copy)).catch(()=>{});
+  if(url.origin!==self.location.origin)return;
+  const dest=event.request.destination;
+  // HTML e JavaScript sempre vêm da rede. Nunca retornar HTML como fallback de JS.
+  if(dest==='document'||dest==='script'||url.pathname.endsWith('.html')||url.pathname.endsWith('.js')){
+    event.respondWith(fetch(event.request,{cache:'no-store'}).catch(()=>{
+      if(dest==='document') return caches.match('./index.html').then(r=>r||Response.error());
+      return Response.error();
+    }));
+    return;
+  }
+  // Recursos visuais podem usar cache, com atualização em segundo plano.
+  event.respondWith(caches.match(event.request).then(cached=>{
+    const network=fetch(event.request).then(response=>{
+      if(response&&response.ok)caches.open(CACHE).then(c=>c.put(event.request,response.clone())).catch(()=>{});
       return response;
-    }).catch(()=>caches.match(event.request).then(r=>r||caches.match('./login.html')))
-  );
+    }).catch(()=>cached||Response.error());
+    return cached||network;
+  }));
 });

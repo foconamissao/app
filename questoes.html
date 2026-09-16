@@ -96,12 +96,11 @@
     </section>
   </main>
 </div>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="./js/cache-recovery.js?v=4.0.1"></script><script src="./js/runtime-guard.js?v=4.0.1"></script><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script type="module">
-  import {boot} from './js/app.js';
-  import {initQuestoes} from './js/questoes.js';
-  const ctx=await boot('questoes');
-  if(ctx) initQuestoes(ctx);
+  import {runPage} from './js/app.js?v=4.0.1';
+  import {initQuestoes} from './js/questoes.js?v=4.0.1';
+  runPage('questoes',initQuestoes);
 </script>
-<script type="module" src="./js/pwa.js"></script></body>
+<script type="module" src="./js/pwa.js?v=4.0.1"></script></body>
 </html>
