@@ -29,6 +29,7 @@
 
 <section id="simulationExamView" class="hidden">
   <div class="exam-top card"><div><span class="eyebrow">SIMULADO EM ANDAMENTO</span><h2 id="examTitle">Simulado</h2><span id="answeredCount" class="muted">0/0 respondidas</span></div><div class="exam-clock"><small>Tempo restante</small><b id="examTimer">00:00:00</b></div></div>
+  <div id="simulationSecurityStatus" class="simulation-security-status hidden"></div>
   <div class="progress exam-progress"><i id="examProgress" style="width:0%"></i></div>
   <div class="simulation-exam-grid"><section class="card exam-question-card"><div class="question-head"><span id="examCounter" class="badge">1 / 1</span><div id="examMeta" class="sim-badges"></div></div><h3 id="examStatement"></h3><div id="examOptions" class="exam-options"></div><div class="exam-actions"><button id="prevQuestion" class="btn secondary" type="button">← ANTERIOR</button><button id="markReview" class="btn secondary" type="button">☆ Marcar para revisar</button><button id="nextQuestion" class="btn" type="button">PRÓXIMA</button></div></section><aside class="card exam-side"><div class="section-title compact-title"><h3>Navegação</h3></div><div id="examNavigator" class="exam-navigator"></div><div class="exam-legend"><span><i class="legend-dot answered"></i> Respondida</span><span><i class="legend-dot marked"></i> Revisar</span></div><button id="finishSimulation" class="btn danger-btn full" type="button">FINALIZAR SIMULADO</button><button id="backToSimulations" class="btn secondary full" type="button">VOLTAR À LISTA</button></aside></div>
 </section>
@@ -39,4 +40,15 @@
   <div class="grid two-col simulation-result-grid"><section class="card"><div class="section-title"><h3>Desempenho por disciplina</h3></div><div id="disciplineResult" class="sim-disc-list"></div></section><section id="rankingSection" class="card"><div class="section-title"><h3>Ranking do simulado</h3></div><div id="simulationRanking"><div class="empty compact">Carregando…</div></div></section></div>
   <div class="section-title"><h2>Correção</h2></div><div id="simulationCorrection" class="simulation-correction"></div>
 </section>
-</main></div><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script type="module">import {boot} from './js/app.js';import {loadSimulados} from './js/simulados.js';const ctx=await boot('simulados');if(ctx)loadSimulados(ctx);</script><script type="module" src="./js/pwa.js"></script></body></html>
+</main></div>
+<div id="simulationSecurityModal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="securityModalTitle">
+  <div class="modal-card security-modal-card">
+    <div class="security-shield">🛡️</div>
+    <span class="eyebrow">SEGURANÇA DO SIMULADO</span>
+    <h2 id="securityModalTitle">Atenção: permaneça no aplicativo</h2>
+    <p>O simulado deve ser realizado <strong>sem sair do aplicativo, minimizar a tela ou mudar de aba</strong>.</p>
+    <p>Esta é a sua <strong>primeira ocorrência</strong>. Se isso acontecer novamente, o simulado será <strong>finalizado automaticamente na questão em que estiver</strong> e a nota considerará somente as respostas registradas até aquele momento.</p>
+    <button id="securityAcknowledge" class="btn full" type="button">ENTENDI E VOU CONTINUAR</button>
+  </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script type="module">import {boot} from './js/app.js';import {loadSimulados} from './js/simulados.js';const ctx=await boot('simulados');if(ctx)loadSimulados(ctx);</script><script type="module" src="./js/pwa.js"></script></body></html>

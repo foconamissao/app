@@ -3,6 +3,7 @@ import {sb} from './supabase.js';
 const $=s=>document.querySelector(s);
 const esc=(v='')=>String(v).replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
 let ctx,simulations=[],attempts=[],active=null,questions=[],answers=new Map(),index=0,timer=null,finishing=false;
+let securityEnabled=false,securityRequestInFlight=false,securityPendingWarning=null,securityFinalizedPending=false;
 
 function notice(msg,type='success'){const el=$('#simulationNotice');if(!el)return;el.textContent=msg;el.className=`notice ${type}`;clearTimeout(notice.t);notice.t=setTimeout(()=>el.classList.add('hidden'),4500)}
 function fmtDate(iso){return iso?new Date(iso).toLocaleString('pt-BR'):'—'}
@@ -11,10 +12,52 @@ function simStatus(s){const now=Date.now(),start=s.data_liberacao?new Date(s.dat
 function ownAttempts(id){return attempts.filter(a=>Number(a.simulado_id)===Number(id)).sort((a,b)=>Number(b.numero_tentativa||1)-Number(a.numero_tentativa||1))}
 function latestAttempt(id){return ownAttempts(id)[0]||null}
 function show(section){['#simulationListView','#simulationExamView','#simulationResultView'].forEach(s=>$(s)?.classList.toggle('hidden',s!==section))}
+function securityModal(showIt=true){$('#simulationSecurityModal')?.classList.toggle('hidden',!showIt)}
+function securityStatus(){
+  const el=$('#simulationSecurityStatus'); if(!el)return;
+  const strikes=Number(active?.violacoes_seguranca||0);
+  if(!strikes){el.classList.add('hidden');el.textContent='';return}
+  el.textContent=`⚠️ Atenção: ${strikes} ocorrência de saída da tela registrada. Uma nova ocorrência encerrará o simulado automaticamente.`;
+  el.classList.remove('hidden');
+}
+async function registerSecurityViolation(){
+  if(!securityEnabled||!active||finishing||securityRequestInFlight)return;
+  securityRequestInFlight=true;
+  const {data,error}=await sb.rpc('registrar_violacao_simulado',{p_tentativa_id:Number(active.id)});
+  securityRequestInFlight=false;
+  if(error){console.error('Falha ao registrar ocorrência de segurança:',error);return}
+  const strikes=Number(data?.violacoes||data?.violacoes_seguranca||0);
+  active.violacoes_seguranca=strikes;
+  if(data?.finalizado||strikes>=2){
+    securityEnabled=false;
+    securityFinalizedPending=true;
+    if(document.visibilityState==='visible')await showSecurityFinalization();
+    return;
+  }
+  securityPendingWarning=true;
+  if(document.visibilityState==='visible'){securityStatus();securityModal(true)}
+}
+async function showSecurityFinalization(){
+  if(!securityFinalizedPending||!active)return;
+  securityFinalizedPending=false;
+  securityModal(false);
+  await loadResult(active.id,'O simulado foi finalizado automaticamente por repetição de saída da tela. A pontuação considera somente o que havia sido respondido até aquele momento.');
+}
+function handleVisibilityChange(){
+  if(document.visibilityState==='hidden'){
+    registerSecurityViolation();
+    return;
+  }
+  if(securityFinalizedPending){showSecurityFinalization();return}
+  if(securityPendingWarning){securityPendingWarning=false;securityStatus();securityModal(true)}
+}
 function setAttemptUrl(id){const u=new URL(location.href);u.searchParams.set('tentativa',String(id));history.replaceState(null,'',u)}
 function clearAttemptUrl(){const u=new URL(location.href);u.searchParams.delete('tentativa');history.replaceState(null,'',u.pathname+u.search+u.hash)}
 
 async function loadList(){
+  securityEnabled=false;securityPendingWarning=false;securityFinalizedPending=false;securityModal(false);
+  document.body.classList.remove('simulation-lockdown');
+  active=null;
   stopTimer();
   clearAttemptUrl();
   const [{data:sims,error},{data:ats,error:ae}]=await Promise.all([
@@ -61,6 +104,8 @@ async function loadAttempt(attemptId){
   const {data:a,error}=await sb.from('simulado_tentativas').select('*,simulados(*)').eq('id',attemptId).eq('user_id',ctx.user.id).single();
   if(error||!a)return notice('Tentativa não encontrada.','error'); if(a.status==='finalizada')return loadResult(attemptId);
   active=a;
+  securityEnabled=true;securityPendingWarning=false;securityFinalizedPending=false;
+  document.body.classList.add('simulation-lockdown');
   setAttemptUrl(a.id);
   const [{data:links,error:qe},{data:resp,error:re}]=await Promise.all([
     sb.from('simulado_questoes').select('ordem,peso,questao_id,questoes(id,disciplina_id,assunto_id,enunciado,alternativa_a,alternativa_b,alternativa_c,alternativa_d,alternativa_e,banca,concurso,ano,disciplinas(nome),assuntos(nome))').eq('simulado_id',a.simulado_id).order('ordem'),
@@ -69,7 +114,7 @@ async function loadAttempt(attemptId){
   if(qe||re)return notice('Não foi possível carregar a prova.','error');
   questions=(links||[]).map(x=>({...x.questoes,peso:x.peso,ordem:x.ordem})); answers=new Map((resp||[]).map(r=>[Number(r.questao_id),r]));
   index=Math.max(0,Math.min(questions.length-1,Number(a.current_question_index||0)));
-  renderExam();show('#simulationExamView');startTimer();
+  renderExam();securityStatus();show('#simulationExamView');startTimer();
 }
 function optionEntries(q){return ['A','B','C','D','E'].map(k=>[k,q[`alternativa_${k.toLowerCase()}`]]).filter(([,v])=>String(v||'').trim())}
 function renderExam(){
@@ -141,14 +186,22 @@ function startTimer(){
 }
 function stopTimer(){if(timer){clearInterval(timer);timer=null}}
 async function finishSimulation(auto=false){
-  if(finishing)return;const blanks=questions.length-[...answers.values()].filter(a=>a.resposta).length;
+  if(finishing)return;
+  const blanks=questions.length-[...answers.values()].filter(a=>a.resposta).length;
   if(!auto&&!confirm(blanks?`Ainda há ${blanks} questão(ões) sem resposta. Finalizar mesmo assim?`:'Finalizar o simulado agora?'))return;
+  securityEnabled=false;document.body.classList.remove('simulation-lockdown');
   finishing=true;$('#finishSimulation').disabled=true;
   const {data,error}=await sb.rpc('finalizar_simulado',{p_tentativa_id:Number(active.id)});finishing=false;$('#finishSimulation').disabled=false;
-  if(error){console.error(error);return notice('Não foi possível finalizar o simulado. Tente novamente.','error')}
+  if(error){
+    console.error(error);
+    securityEnabled=true;document.body.classList.add('simulation-lockdown');
+    return notice('Não foi possível finalizar o simulado. Tente novamente.','error')
+  }
   stopTimer();await loadResult(active.id,auto?'O tempo terminou e o simulado foi finalizado automaticamente.':null);
 }
 async function loadResult(attemptId,message=null){
+  securityEnabled=false;securityPendingWarning=false;securityModal(false);
+  document.body.classList.remove('simulation-lockdown');
   stopTimer();
   const {data:a,error}=await sb.from('simulado_tentativas').select('*,simulados(*)').eq('id',attemptId).eq('user_id',ctx.user.id).single();if(error||!a)return notice('Resultado não encontrado.','error');
   const [{data:resp},{data:links}]=await Promise.all([
@@ -185,5 +238,17 @@ export async function loadSimulados(context){
   $('#examNavigator')?.addEventListener('click',e=>{const i=Number(e.target.dataset.gotoQ);if(Number.isInteger(i)&&i>=0&&i<questions.length)goToQuestion(i)});
   $('#finishSimulation')?.addEventListener('click',()=>finishSimulation(false));
   $('#backToSimulations')?.addEventListener('click',loadList);$('#backFromResult')?.addEventListener('click',loadList);
+  $('#securityAcknowledge')?.addEventListener('click',()=>securityModal(false));
+  document.addEventListener('click',e=>{
+    if(!securityEnabled||!active)return;
+    const link=e.target.closest('a[href]');
+    if(!link)return;
+    const href=link.getAttribute('href')||'';
+    if(!href||href==='#'||href.startsWith('javascript:'))return;
+    e.preventDefault();
+    e.stopPropagation();
+    registerSecurityViolation();
+  },true);
+  document.addEventListener('visibilitychange',handleVisibilityChange);
   window.addEventListener('pagehide',stopTimer,{once:true});
 }
