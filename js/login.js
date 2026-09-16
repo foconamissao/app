@@ -1,0 +1,2 @@
+import {sb,isConfigured} from './supabase.js';
+const form=document.querySelector('#loginForm'),msg=document.querySelector('#msg');if(!isConfigured())msg.textContent='Modo demonstração: configure js/supabase.js para ativar o login.';form.addEventListener('submit',async e=>{e.preventDefault();if(!sb){location.href='./index.html';return}const email=form.email.value,password=form.password.value;const {error}=await sb.auth.signInWithPassword({email,password});if(error){msg.textContent=error.message;return}location.href='./index.html'});
