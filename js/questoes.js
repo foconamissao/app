@@ -1,5 +1,4 @@
 import {sb} from './supabase.js';
-import {priorityScore,weightedSample} from './priority.js';
 
 const $ = (s) => document.querySelector(s);
 const esc = (v='') => String(v).replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
@@ -210,8 +209,13 @@ async function startSession(){
     const qty=Math.max(1,Number($('#filterQuantity').value)||20);
     const distribution=$('#filterDistribution')?.value||'inteligente';
     if(distribution==='inteligente'){
-      const maxPeso=Math.max(1,...state.disciplines.map(d=>Number(d.peso)||1));
-      state.session=weightedSample(list,qty,q=>{const base=Math.pow(priorityScore(q,maxPeso),2);const peso=Math.max(.1,Number(q.disciplinas?.peso)||1);const hist=state.errorCounts.get(Number(q.id));const reforco=hist?1+Math.min(1.25,(hist.erros||0)*.18)*(hist.dominado?.65:1):1;return base*peso*reforco;});
+      const did=Number($('#filterDiscipline').value)||null;
+      const tid=Number($('#filterTopic').value)||null;
+      const mode=$('#filterMode').value||'todas';
+      const {data,error}=await sb.rpc('selecionar_questoes_inteligentes',{p_disciplina_id:did,p_assunto_id:tid,p_filtro:mode,p_quantidade:qty});
+      if(error)throw error;
+      const map=new Map(list.map(q=>[Number(q.id),q]));
+      state.session=(data||[]).map(x=>map.get(Number(x.questao_id??x.id))).filter(Boolean);
     }else state.session=shuffle(list).slice(0,qty);
     if(!state.session.length){notice('Nenhuma questão encontrada com esses filtros.');return;}
     state.index=0;state.hits=0;

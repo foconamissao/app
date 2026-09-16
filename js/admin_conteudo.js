@@ -1,9 +1,9 @@
 import {sb} from './supabase.js';
-import {priorityScore,priorityLabel,clampLevel} from './priority.js';
 const $=s=>document.querySelector(s);
 const esc=(v='')=>String(v).replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
 let parsed=null, selected=new Set(), existing=new Set();
 const norm=s=>String(s||'').trim().toLowerCase().replace(/\s+/g,' ');
+const clampLevel=(v,fallback=3)=>{const n=Number(v);return Number.isFinite(n)?Math.min(5,Math.max(1,Math.round(n))):fallback};
 function notice(msg,type='success'){const el=$('#adminNotice');if(!el)return;el.textContent=msg;el.className=`notice ${type}`;el.scrollIntoView({behavior:'smooth',block:'nearest'});clearTimeout(notice.t);notice.t=setTimeout(()=>el.classList.add('hidden'),5000)}
 function valLevel(v){const n=Number(v);return Number.isInteger(n)&&n>=1&&n<=5}
 function validateItem(q,i){
@@ -30,12 +30,11 @@ function renderPreview(){
  let valid=0,dups=0,flash=0,problems=0;const seen=new Set();
  const rows=parsed.questoes.map((q,i)=>{
    const errs=validateItem(q,i);const key=norm(q.enunciado);const dup=existing.has(key)||seen.has(key);if(key)seen.add(key);if(dup)dups++;if(q.flashcard)flash++;if(errs.length)problems++;else valid++;
-   const score=priorityScore({peso_disciplina:q.peso_disciplina||1,recorrencia:q.recorrencia||q.recorrencia_assunto||3,dificuldade:q.dificuldade||q.dificuldade_assunto||3,assuntos:{recorrencia:q.recorrencia_assunto||q.recorrencia||3,dificuldade:q.dificuldade_assunto||q.dificuldade||3}},Math.max(1,...parsed.questoes.map(x=>Number(x.peso_disciplina)||1)));
    const checked=selected.has(i)?'checked':'';const blocked=errs.length?'disabled':'';
-   return `<tr><td><input type="checkbox" data-bulk-select="${i}" ${checked} ${blocked}></td><td>${i+1}</td><td><b>${esc(q.disciplina||'—')}</b><small class="table-sub">${esc(q.assunto||'—')}${q.subassunto?` · ${esc(q.subassunto)}`:''}</small></td><td>${esc(String(q.enunciado||'').slice(0,115))}${String(q.enunciado||'').length>115?'…':''}</td><td><span class="badge">${score.toFixed(2)} · ${priorityLabel(score).replace('Prioridade ','')}</span></td><td>${q.flashcard?'✅':'—'}</td><td>${errs.length?`<span class="badge off">${esc(errs.join('; '))}</span>`:dup?'<span class="badge wait">Possível duplicidade</span>':'<span class="badge ok">Pronta</span>'}</td></tr>`;
+   return `<tr><td><input type="checkbox" data-bulk-select="${i}" ${checked} ${blocked}></td><td>${i+1}</td><td><b>${esc(q.disciplina||'—')}</b><small class="table-sub">${esc(q.assunto||'—')}${q.subassunto?` · ${esc(q.subassunto)}`:''}</small></td><td>${esc(String(q.enunciado||'').slice(0,115))}${String(q.enunciado||'').length>115?'…':''}</td><td>${q.flashcard?'✅':'—'}</td><td>${errs.length?`<span class="badge off">${esc(errs.join('; '))}</span>`:dup?'<span class="badge wait">Possível duplicidade</span>':'<span class="badge ok">Pronta</span>'}</td></tr>`;
  }).join('');
  summary.innerHTML=`<b>${parsed.questoes.length}</b> questões · <b>${valid}</b> estruturalmente válidas · <b>${flash}</b> flashcards · <b>${dups}</b> possíveis duplicidades · <b>${problems}</b> com problemas`;
- box.innerHTML=`<div class="table-wrap"><table><thead><tr><th></th><th>#</th><th>Classificação</th><th>Enunciado</th><th>Prioridade</th><th>Card</th><th>Validação</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+ box.innerHTML=`<div class="table-wrap"><table><thead><tr><th></th><th>#</th><th>Classificação</th><th>Enunciado</th><th>Card</th><th>Validação</th></tr></thead><tbody>${rows}</tbody></table></div>`;
  $('#importBulk').disabled=!Array.from(selected).some(i=>!validateItem(parsed.questoes[i],i).length);
 }
 async function importSelected(){
