@@ -62,7 +62,7 @@ window.addEventListener('appinstalled',()=>{
 });
 
 if('serviceWorker' in navigator){
-  window.addEventListener('load',()=>navigator.serviceWorker.register('./service-worker.js?v=4.0.1',{updateViaCache:'none'}).then(reg=>reg.update()).catch(err=>console.error('Falha ao atualizar aplicativo:',err)));
+  window.addEventListener('load',()=>navigator.serviceWorker.register('./service-worker.js?v=4.0.2',{updateViaCache:'none'}).then(reg=>reg.update()).catch(err=>console.error('Falha ao atualizar aplicativo:',err)));
 }
 
 document.addEventListener('DOMContentLoaded',mountInstallButtons);

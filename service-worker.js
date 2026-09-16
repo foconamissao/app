@@ -1,4 +1,4 @@
-const CACHE='missao-pe-static-v4.0.1';
+const CACHE='missao-pe-static-v4.0.2';
 const STATIC=[
   './css/variables.css','./css/global.css','./css/responsive.css',
   './assets/logo-missao-pe.png','./assets/icon-192.png','./assets/icon-512.png',
