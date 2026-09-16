@@ -6,6 +6,9 @@ let pendingBlob=null;
 let img=new Image();
 let scale=1,baseScale=1,offX=0,offY=0,drag=false,lastX=0,lastY=0;
 let previewUrl=null;
+const STAGE_SIZE=360;
+const CROP_INSET=16;
+const CROP_SIZE=STAGE_SIZE-(CROP_INSET*2);
 
 function initials(n=''){
   return n.trim().split(/\s+/).slice(0,2).map(x=>x[0]).join('').toUpperCase()||'FM';
@@ -29,9 +32,19 @@ function renderAvatar(p){
     : `<span>${initials(p.nome)}</span>`;
 }
 
+function clampOffsets(){
+  const s=baseScale*scale;
+  const w=img.width*s,h=img.height*s;
+  const maxX=Math.max(0,(w-CROP_SIZE)/2);
+  const maxY=Math.max(0,(h-CROP_SIZE)/2);
+  offX=Math.max(-maxX,Math.min(maxX,offX));
+  offY=Math.max(-maxY,Math.min(maxY,offY));
+}
+
 function draw(){
   const c=$('#cropCanvas');
   const x=c.getContext('2d');
+  clampOffsets();
   x.clearRect(0,0,c.width,c.height);
   const s=baseScale*scale;
   const w=img.width*s,h=img.height*s;
@@ -41,7 +54,7 @@ function draw(){
 function openCrop(file){
   const url=URL.createObjectURL(file);
   img.onload=()=>{
-    baseScale=Math.max(360/img.width,360/img.height);
+    baseScale=Math.max(CROP_SIZE/img.width,CROP_SIZE/img.height);
     scale=1;
     offX=offY=0;
     $('#cropZoom').value=1;
@@ -56,10 +69,41 @@ function openCrop(file){
   img.src=url;
 }
 
-function canvasToBlob(canvas){
+function cropCanvasToBlob(canvas){
   return new Promise((resolve,reject)=>{
-    canvas.toBlob(blob=>blob?resolve(blob):reject(new Error('Falha ao gerar imagem')),'image/jpeg',0.9);
+    // Exporta diretamente da imagem original a MESMA área quadrada delimitada
+    // pelo círculo do editor. O CSS circular apenas mascara esse quadrado depois.
+    const s=baseScale*scale;
+    const w=img.width*s,h=img.height*s;
+    const imageLeft=(canvas.width-w)/2+offX;
+    const imageTop=(canvas.height-h)/2+offY;
+    const sx=(CROP_INSET-imageLeft)/s;
+    const sy=(CROP_INSET-imageTop)/s;
+    const sw=CROP_SIZE/s;
+    const sh=CROP_SIZE/s;
+
+    const out=document.createElement('canvas');
+    out.width=512;
+    out.height=512;
+    const ctx=out.getContext('2d');
+    ctx.drawImage(img,sx,sy,sw,sh,0,0,out.width,out.height);
+    out.toBlob(blob=>blob?resolve(blob):reject(new Error('Falha ao gerar imagem')),'image/jpeg',0.92);
   });
+}
+
+function refreshAccountHeader(profile){
+  const account=document.querySelector('.account-wrap');
+  if(!account)return;
+  const avatar=account.querySelector('.account-avatar');
+  const name=account.querySelector('.account-name');
+  if(name) name.textContent=profile.nome||'Participante';
+  if(avatar){
+    if(profile.avatar_path){
+      avatar.innerHTML=`<img src="${avatarUrl(profile.avatar_path)}?v=${Date.now()}" alt="Foto de ${profile.nome||'participante'}">`;
+    }else{
+      avatar.innerHTML=`<span>${initials(profile.nome)}</span>`;
+    }
+  }
 }
 
 export function setupProfile(ctx){
@@ -113,7 +157,7 @@ export function setupProfile(ctx){
 
   $('#saveCrop').onclick=async()=>{
     try{
-      pendingBlob=await canvasToBlob(canvas);
+      pendingBlob=await cropCanvasToBlob(canvas);
       setPreviewUrl(URL.createObjectURL(pendingBlob));
       $('#profileAvatar').innerHTML=`<img src="${previewUrl}" alt="Prévia da nova foto">`;
       modal.classList.add('hidden');
@@ -163,8 +207,9 @@ export function setupProfile(ctx){
       }
 
       pendingBlob=null;
+      renderAvatar(ctx.profile);
+      refreshAccountHeader(ctx.profile);
       note('Perfil atualizado.');
-      setTimeout(()=>location.reload(),350);
     }catch(err){
       // Se a foto nova subiu mas o perfil não foi atualizado, evita deixar arquivo órfão.
       if(uploadedPath){

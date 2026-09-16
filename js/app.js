@@ -35,7 +35,7 @@ function mountAccount(profile,container){
   const wrap=document.createElement('div');
   wrap.className='account-wrap';
   const img=profile.avatar_path
-    ? `<img src="${avatarUrl(profile.avatar_path)}" alt="Foto de ${profile.nome||'participante'}">`
+    ? `<img src="${avatarUrl(profile.avatar_path)}?v=${Date.now()}" alt="Foto de ${profile.nome||'participante'}">`
     : `<span>${initials(profile.nome)}</span>`;
   wrap.innerHTML=`<div class="account-avatar">${img}</div><b class="account-name">${profile.nome||'Participante'}</b><button class="account-gear" type="button" aria-label="Opções da conta" aria-expanded="false">⚙</button><div class="account-menu hidden"><a href="./admin.html#perfil" class="profile-link">👤 Editar perfil</a><button type="button" class="logout-menu">🚪 Sair</button></div>`;
   container.appendChild(wrap);
