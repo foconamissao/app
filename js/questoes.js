@@ -131,15 +131,8 @@ function chooseAlternative(btn){
 }
 
 async function registerError(q,answer){
-  const {data,error}=await sb.from('caderno_erros').select('id,erros').eq('user_id',state.ctx.user.id).eq('questao_id',q.id).maybeSingle();
+  const {error}=await sb.rpc('registrar_erro',{p_questao_id:q.id,p_resposta:answer});
   if(error) throw error;
-  if(data){
-    const {error:ue}=await sb.from('caderno_erros').update({erros:(data.erros||0)+1,ultima_resposta:answer,dominado:false,ultimo_erro:new Date().toISOString()}).eq('id',data.id);
-    if(ue) throw ue;
-  }else{
-    const {error:ie}=await sb.from('caderno_erros').insert({user_id:state.ctx.user.id,questao_id:q.id,erros:1,ultima_resposta:answer,dominado:false});
-    if(ie) throw ie;
-  }
 }
 
 async function submitAnswer(){
@@ -236,13 +229,24 @@ function finishSession(){
 
 function resetSession(){
   state.session=[];state.index=0;state.selected=null;state.answered=false;state.hits=0;
+  if(location.search)history.replaceState(null,'',location.pathname);
   showOnly('#questionSetup');
   updateAvailableCount();
 }
 
 export async function initQuestoes(ctx){
   state.ctx=ctx;
-  try{await loadBase();}
+  try{
+    await loadBase();
+    const directId=Number(new URLSearchParams(location.search).get('questao'))||null;
+    if(directId){
+      const direct=state.questions.find(q=>Number(q.id)===directId);
+      if(direct){
+        state.session=[direct];state.index=0;state.hits=0;
+        showOnly('#questionSession');renderQuestion();
+      }else notice('Esta questão não está disponível para revisão.');
+    }
+  }
   catch(e){console.error(e);notice('Não foi possível carregar o banco de questões.');}
 
   $('#filterDiscipline').addEventListener('change',()=>{fillTopics();updateAvailableCount();});

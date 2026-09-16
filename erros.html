@@ -1,1 +1,79 @@
-<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Caderno de Erros — Missão PE</title><link rel="stylesheet" href="./css/variables.css"><link rel="stylesheet" href="./css/global.css"><link rel="stylesheet" href="./css/responsive.css"></head><body><div class="overlay"></div><div class="app"><aside class="sidebar"><div class="brand"><div class="brand-mark brand-logo"><img src="./assets/logo-missao-pe.png" alt="Missão PE"></div><div><strong>FOCO NA MISSÃO</strong><small>MISSÃO PE</small></div></div><nav class="nav"><a data-nav="dashboard" href="./index.html">🏠 Início</a><a data-nav="missao" href="./missao.html">🎯 Minha Missão</a><a data-nav="cronograma" href="./cronograma.html">📅 Cronograma</a><a data-nav="questoes" href="./questoes.html">📝 Questões</a><a data-nav="flashcards" href="./flashcards.html">🧠 Flashcards</a><a data-nav="erros" href="./erros.html">📕 Caderno de Erros</a><a data-nav="simulados" href="./simulados.html">🏆 Simulados</a><a data-nav="desempenho" href="./desempenho.html">📊 Desempenho</a><a data-nav="ranking" href="./ranking.html">👥 Ranking</a><div class="admin"><a class="hidden" data-admin data-nav="admin" href="./admin.html">⚙ Administração</a><a href="#" id="logout">🚪 Sair</a></div></nav></aside><main class="main"><header class="topbar"><div><button id="mobileMenu" class="btn secondary mobile-menu">☰</button><h1 id="pageTitle">Caderno de Erros</h1></div><div class="toolbar"><span id="userName" class="muted"></span><div class="avatar">◉</div></div></header><div class="section-title"><h2>Erros e revisões</h2></div><section id="contentList" class="card"><div class="empty">Carregando…</div></section></main></div><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script type="module">import {boot} from './js/app.js'; import {loadGeneric} from './js/generic.js'; const ctx=await boot('erros'); if(ctx) loadGeneric(ctx,'erros');</script></body></html>
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Caderno de Erros — Missão PE</title>
+  <link rel="stylesheet" href="./css/variables.css">
+  <link rel="stylesheet" href="./css/global.css">
+  <link rel="stylesheet" href="./css/responsive.css">
+</head>
+<body>
+<div class="overlay"></div>
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand"><div class="brand-mark brand-logo"><img src="./assets/logo-missao-pe.png" alt="Missão PE"></div><div><strong>FOCO NA MISSÃO</strong><small>MISSÃO PE</small></div></div>
+    <nav class="nav">
+      <a data-nav="dashboard" href="./index.html">🏠 Início</a>
+      <a data-nav="missao" href="./missao.html">🎯 Minha Missão</a>
+      <a data-nav="cronograma" href="./cronograma.html">📅 Cronograma</a>
+      <a data-nav="questoes" href="./questoes.html">📝 Questões</a>
+      <a data-nav="flashcards" href="./flashcards.html">🧠 Flashcards</a>
+      <a data-nav="erros" href="./erros.html">📕 Caderno de Erros</a>
+      <a data-nav="simulados" href="./simulados.html">🏆 Simulados</a>
+      <a data-nav="desempenho" href="./desempenho.html">📊 Desempenho</a>
+      <a data-nav="ranking" href="./ranking.html">👥 Ranking</a>
+      <div class="admin"><a class="hidden" data-admin href="./admin.html">⚙ Administração</a><a href="#" id="logout">🚪 Sair</a></div>
+    </nav>
+  </aside>
+
+  <main class="main">
+    <header class="topbar"><div><button id="mobileMenu" class="btn secondary mobile-menu">☰</button><h1 id="pageTitle">Caderno de Erros</h1></div></header>
+
+    <div class="section-title error-title-row">
+      <div><span class="eyebrow">REVISÃO INTELIGENTE</span><h2>Transforme seus erros em acertos</h2></div>
+      <span id="errorVisibleCount" class="badge">Carregando...</span>
+    </div>
+
+    <section class="grid stats error-stats">
+      <div class="stat"><span>❌ Erros registrados</span><b id="errorOccurrences">0</b><small>ocorrências</small></div>
+      <div class="stat"><span>📌 Pendentes</span><b id="errorPending">0</b><small>questões</small></div>
+      <div class="stat"><span>✅ Dominadas</span><b id="errorMastered">0</b><small>questões</small></div>
+      <div class="stat"><span>⚠ Mais recorrente</span><b id="errorTopSubject">—</b><small id="errorTopSubjectDetail">sem dados</small></div>
+    </section>
+
+    <section class="card error-toolbar">
+      <div class="form-grid error-filter-grid">
+        <div class="field"><label>Pesquisar</label><input id="errorSearch" type="search" placeholder="Enunciado, palavra-chave ou macete"></div>
+        <div class="field"><label>Disciplina</label><select id="errorDiscipline"><option value="">Todas</option></select></div>
+        <div class="field"><label>Assunto</label><select id="errorTopic"><option value="">Todos</option></select></div>
+        <div class="field"><label>Status</label><select id="errorStatus"><option value="pendentes">Pendentes</option><option value="dominadas">Dominadas</option><option value="todos">Todos</option></select></div>
+      </div>
+    </section>
+
+    <section id="errorList" class="error-list"><div class="card empty">Carregando seu caderno...</div></section>
+  </main>
+</div>
+
+<div id="flashcardModal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="flashcardModalTitle">
+  <section class="card modal-card">
+    <div class="section-title"><div><span class="eyebrow">NOVO FLASHCARD</span><h2 id="flashcardModalTitle">Criar a partir do erro</h2></div><button id="closeFlashcardModal" class="btn secondary compact" type="button">✕</button></div>
+    <form id="flashcardForm">
+      <input id="flashcardQuestionId" type="hidden">
+      <div class="field"><label>Frente</label><textarea id="flashcardFront" rows="4" required></textarea></div>
+      <div class="field"><label>Verso</label><textarea id="flashcardBack" rows="6" required></textarea></div>
+      <div id="flashcardNotice" class="notice hidden"></div>
+      <div class="form-actions"><button id="cancelFlashcard" class="btn secondary" type="button">CANCELAR</button><button class="btn" type="submit">CRIAR FLASHCARD</button></div>
+    </form>
+  </section>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script type="module">
+  import {boot} from './js/app.js';
+  import {initErros} from './js/erros.js';
+  const ctx=await boot('erros');
+  if(ctx) initErros(ctx);
+</script>
+</body>
+</html>
