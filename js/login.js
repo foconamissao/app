@@ -2,7 +2,7 @@ import { sb, isConfigured } from './supabase.js';
 
 const form = document.querySelector('#loginForm');
 const msg = document.querySelector('#msg');
-const button = form?.querySelector('button[type="submit"]');
+const button = form?.querySelector('button[type="submit"]') || form?.querySelector('button');
 const params = new URLSearchParams(location.search);
 
 function show(text, type = 'info') {
