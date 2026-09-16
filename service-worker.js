@@ -1,4 +1,4 @@
-const CACHE='missao-pe-shell-v3.0.0';
+const CACHE='missao-pe-shell-v3.1.0';
 const SHELL=[
   './','./login.html','./plano.html','./objetivos.html','./cadastro.html','./index.html','./missao.html','./cronograma.html','./calendario.html','./revisao.html',
   './questoes.html','./flashcards.html','./erros.html','./simulados.html','./desempenho.html',
