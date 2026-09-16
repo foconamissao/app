@@ -18,3 +18,9 @@ img{max-width:100%;height:auto}
 .brand-logo{border-radius:50%!important;background:transparent!important;overflow:hidden!important}
 .brand-logo img{display:block;width:100%!important;height:100%!important;object-fit:cover!important;border-radius:50%!important;clip-path:circle(49.5% at 50% 50%)}
 @media(max-width:560px){.login-shell{padding:16px}.login-card{width:100%;padding:22px 18px}.login-logo,.login-logo img{width:118px!important;height:118px!important;min-width:118px;min-height:118px;max-width:118px!important;max-height:118px!important}}
+/* V1.2.2 — fluxo de cadastro em página própria */
+.account-create-block{display:grid;gap:10px;text-align:center;margin-top:18px;padding-top:18px;border-top:1px solid var(--line)}
+.account-create-block span{font-size:13px;color:var(--muted)}
+.create-account-link{display:block;text-align:center;width:100%}
+.back-login{display:block;text-align:center;margin-top:18px;color:var(--gold2);font-size:14px}
+.back-login:hover{text-decoration:underline}

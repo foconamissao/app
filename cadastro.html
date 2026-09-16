@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Criar conta — Missão PE</title>
+  <link rel="stylesheet" href="./css/variables.css">
+  <link rel="stylesheet" href="./css/global.css">
+</head>
+<body>
+  <main class="login-shell">
+    <section class="login-card">
+      <div class="login-logo"><img src="./assets/logo-missao-pe.png" alt="Foco na Missão — Missão Pernambuco"></div>
+      <h1>Criar minha conta</h1>
+      <p>Preencha seus dados. O acesso será liberado após aprovação.</p>
+
+      <form id="registerForm">
+        <div class="field"><label for="registerName">Nome</label><input id="registerName" name="nome" autocomplete="name" required maxlength="120"></div>
+        <div class="field"><label for="registerEmail">E-mail</label><input id="registerEmail" name="email" type="email" autocomplete="email" required></div>
+        <div class="field"><label for="registerPassword">Senha</label><input id="registerPassword" name="password" type="password" autocomplete="new-password" minlength="6" required></div>
+        <div class="field"><label for="registerConfirm">Confirmar senha</label><input id="registerConfirm" name="confirm" type="password" autocomplete="new-password" minlength="6" required></div>
+        <button class="btn" type="submit">CRIAR MINHA CONTA</button>
+      </form>
+      <div id="msg" class="notice muted"></div>
+      <a class="back-login" href="./login.html">← Voltar para entrar</a>
+    </section>
+  </main>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script type="module" src="./js/cadastro.js"></script>
+</body>
+</html>
