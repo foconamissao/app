@@ -24,3 +24,15 @@ img{max-width:100%;height:auto}
 .create-account-link{display:block;text-align:center;width:100%}
 .back-login{display:block;text-align:center;margin-top:18px;color:var(--gold2);font-size:14px}
 .back-login:hover{text-decoration:underline}
+
+/* Login/cadastro V1.2.3 — bloco isolado para evitar conflito de estilos */
+.login-card{display:block!important;}
+.login-card form{width:100%;}
+.signup-cta{display:flex!important;flex-direction:column!important;align-items:stretch!important;width:100%!important;gap:10px!important;margin:18px 0 0!important;padding:0!important;text-align:center!important;}
+.signup-divider{display:flex!important;align-items:center!important;gap:12px!important;width:100%!important;color:var(--muted)!important;font-size:12px!important;}
+.signup-divider::before,.signup-divider::after{content:"";height:1px;flex:1;background:var(--line);}
+.signup-divider span{display:inline-block;padding:0 4px;}
+.signup-question{margin:0!important;text-align:center!important;color:var(--muted)!important;font-size:13px!important;line-height:1.4!important;}
+.signup-button{display:flex!important;align-items:center!important;justify-content:center!important;width:100%!important;min-height:46px!important;padding:11px 16px!important;border:1px solid var(--gold)!important;border-radius:12px!important;background:transparent!important;color:var(--gold2)!important;font-weight:800!important;line-height:1.2!important;text-align:center!important;white-space:normal!important;text-decoration:none!important;}
+.signup-button:hover{background:rgba(213,173,85,.08)!important;color:#fff!important;}
+@media(max-width:560px){.signup-button{min-height:48px!important}.signup-question{font-size:12px!important}}

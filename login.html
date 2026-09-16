@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Login — Missão PE</title>
   <link rel="stylesheet" href="./css/variables.css">
-  <link rel="stylesheet" href="./css/global.css">
+  <link rel="stylesheet" href="./css/global.css?v=1.2.3">
 </head>
 <body>
   <main class="login-shell">
@@ -20,9 +20,10 @@
         <button class="btn" type="submit">ENTRAR</button>
       </form>
 
-      <div class="account-create-block">
-        <span>Ainda não faz parte da missão?</span>
-        <a class="btn secondary create-account-link" href="./cadastro.html">CRIAR MINHA CONTA</a>
+      <div class="signup-cta">
+        <div class="signup-divider"><span>ou</span></div>
+        <p class="signup-question">Ainda não faz parte da missão?</p>
+        <a class="signup-button" id="createAccountLink" href="./cadastro.html">CRIAR MINHA CONTA</a>
       </div>
       <div id="msg" class="notice muted"></div>
     </section>
