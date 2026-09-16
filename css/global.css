@@ -85,3 +85,45 @@ img{max-width:100%;height:auto}
 .admin-sim-item{padding:14px 16px}
 .admin-sim-item .sim-admin-meta{margin-top:10px}
 @media(max-width:700px){.sim-preview-meta{grid-template-columns:1fr}}
+
+/* V1.9.2 — prova com resposta definitiva e desempenho por origem */
+.exam-option.locked{cursor:default;opacity:.82}
+.exam-option.locked:hover{border-color:var(--line)}
+.exam-option.locked:has(input:checked){border-color:rgba(103,197,138,.65);background:rgba(103,197,138,.08);opacity:1}
+.performance-filters{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end}
+.source-breakdown-card{margin-bottom:16px}
+.source-breakdown{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.source-breakdown-item{display:flex;justify-content:space-between;gap:18px;align-items:center;padding:14px;background:var(--panel2);border:1px solid var(--line);border-radius:12px}
+.source-breakdown-item>div{display:grid;gap:4px}.source-breakdown-item>div:last-child{text-align:right}.source-breakdown-item small{color:var(--muted)}.source-breakdown-item strong{font-size:22px;color:var(--gold2)}
+@media(max-width:700px){.performance-filters{width:100%;display:grid;grid-template-columns:1fr}.source-breakdown{grid-template-columns:1fr}.source-breakdown-item{align-items:flex-start}}
+
+/* V1.9.3 — contenção de largura + instalação do aplicativo */
+.app,.main,.main>*{min-width:0}
+.main{overflow-x:hidden}
+.grid>*{min-width:0}
+.table-wrap{max-width:100%;overflow-x:auto;overscroll-behavior-inline:contain}
+.simulation-admin-grid>*{min-width:0}
+.simulation-import-box{min-width:0;overflow:hidden}
+#simulationPreview{max-width:100%;overflow:hidden}
+#simulationPreview .table-wrap{width:100%;max-width:100%;overflow:auto}
+#simulationPreview table{width:100%;table-layout:fixed}
+#simulationPreview th,#simulationPreview td{white-space:normal;vertical-align:top;overflow-wrap:anywhere;word-break:normal}
+#simulationPreview th:nth-child(1),#simulationPreview td:nth-child(1){width:34px;text-align:center}
+#simulationPreview th:nth-child(2),#simulationPreview td:nth-child(2){width:44px}
+#simulationPreview th:nth-child(3),#simulationPreview td:nth-child(3){width:210px}
+#simulationPreview th:last-child,#simulationPreview td:last-child{width:auto}
+.simulation-import-box .form-actions{max-width:100%}
+.simulation-import-box .form-actions .btn{max-width:100%}
+.install-login-btn{width:100%;margin-top:14px}
+.install-card p{line-height:1.6;color:var(--muted)}
+
+@media(max-width:1180px){
+  .simulation-admin-grid{grid-template-columns:1fr}
+  #simulationPreview th:nth-child(3),#simulationPreview td:nth-child(3){width:180px}
+}
+@media(max-width:720px){
+  #simulationPreview table{min-width:680px;table-layout:auto}
+  #simulationPreview th,#simulationPreview td{white-space:normal}
+  .simulation-import-box .form-actions{display:grid;grid-template-columns:1fr}
+  .simulation-import-box .form-actions .btn{width:100%}
+}

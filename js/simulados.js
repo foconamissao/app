@@ -11,9 +11,12 @@ function simStatus(s){const now=Date.now(),start=s.data_liberacao?new Date(s.dat
 function ownAttempts(id){return attempts.filter(a=>Number(a.simulado_id)===Number(id)).sort((a,b)=>Number(b.numero_tentativa||1)-Number(a.numero_tentativa||1))}
 function latestAttempt(id){return ownAttempts(id)[0]||null}
 function show(section){['#simulationListView','#simulationExamView','#simulationResultView'].forEach(s=>$(s)?.classList.toggle('hidden',s!==section))}
+function setAttemptUrl(id){const u=new URL(location.href);u.searchParams.set('tentativa',String(id));history.replaceState(null,'',u)}
+function clearAttemptUrl(){const u=new URL(location.href);u.searchParams.delete('tentativa');history.replaceState(null,'',u.pathname+u.search+u.hash)}
 
 async function loadList(){
   stopTimer();
+  clearAttemptUrl();
   const [{data:sims,error},{data:ats,error:ae}]=await Promise.all([
     sb.from('simulados').select('*').eq('ativo',true).order('data_liberacao',{ascending:false}),
     sb.from('simulado_tentativas').select('*').eq('user_id',ctx.user.id).order('iniciada_em',{ascending:false})
@@ -58,12 +61,14 @@ async function loadAttempt(attemptId){
   const {data:a,error}=await sb.from('simulado_tentativas').select('*,simulados(*)').eq('id',attemptId).eq('user_id',ctx.user.id).single();
   if(error||!a)return notice('Tentativa não encontrada.','error'); if(a.status==='finalizada')return loadResult(attemptId);
   active=a;
+  setAttemptUrl(a.id);
   const [{data:links,error:qe},{data:resp,error:re}]=await Promise.all([
     sb.from('simulado_questoes').select('ordem,peso,questao_id,questoes(id,disciplina_id,assunto_id,enunciado,alternativa_a,alternativa_b,alternativa_c,alternativa_d,alternativa_e,banca,concurso,ano,disciplinas(nome),assuntos(nome))').eq('simulado_id',a.simulado_id).order('ordem'),
     sb.from('simulado_respostas').select('questao_id,resposta,marcada_revisao').eq('tentativa_id',attemptId)
   ]);
   if(qe||re)return notice('Não foi possível carregar a prova.','error');
-  questions=(links||[]).map(x=>({...x.questoes,peso:x.peso,ordem:x.ordem})); answers=new Map((resp||[]).map(r=>[Number(r.questao_id),r])); index=0;
+  questions=(links||[]).map(x=>({...x.questoes,peso:x.peso,ordem:x.ordem})); answers=new Map((resp||[]).map(r=>[Number(r.questao_id),r]));
+  index=Math.max(0,Math.min(questions.length-1,Number(a.current_question_index||0)));
   renderExam();show('#simulationExamView');startTimer();
 }
 function optionEntries(q){return ['A','B','C','D','E'].map(k=>[k,q[`alternativa_${k.toLowerCase()}`]]).filter(([,v])=>String(v||'').trim())}
@@ -73,7 +78,8 @@ function renderExam(){
   $('#examMeta').innerHTML=`<span class="badge">${esc(q.disciplinas?.nome||'')}</span>${q.assuntos?.nome?`<span class="badge">${esc(q.assuntos.nome)}</span>`:''}${q.banca?`<span class="badge">${esc(q.banca)}</span>`:''}`;
   $('#examStatement').textContent=q.enunciado;
   const saved=answers.get(Number(q.id));
-  $('#examOptions').innerHTML=optionEntries(q).map(([k,v])=>`<label class="exam-option"><input type="radio" name="sim-answer" value="${k}" ${saved?.resposta===k?'checked':''}><span class="option-letter">${k}</span><span>${esc(v)}</span></label>`).join('');
+  const locked=!!saved?.resposta;
+  $('#examOptions').innerHTML=optionEntries(q).map(([k,v])=>`<label class="exam-option ${locked?'locked':''}"><input type="radio" name="sim-answer" value="${k}" ${saved?.resposta===k?'checked':''} ${locked?'disabled':''}><span class="option-letter">${k}</span><span>${esc(v)}</span></label>`).join('');
   const mark=$('#markReview');mark.classList.toggle('active',!!saved?.marcada_revisao);mark.textContent=saved?.marcada_revisao?'★ Marcada para revisar':'☆ Marcar para revisar';
   $('#prevQuestion').disabled=index===0;$('#nextQuestion').textContent=index===questions.length-1?'IR PARA FINALIZAÇÃO':'PRÓXIMA';renderNavigator();
 }
@@ -82,10 +88,51 @@ function renderNavigator(){
   const answered=[...answers.values()].filter(a=>a.resposta).length;$('#answeredCount').textContent=`${answered}/${questions.length} respondidas`;
 }
 async function saveCurrent(patch={}){
-  const q=questions[index],current=answers.get(Number(q.id))||{questao_id:q.id,resposta:null,marcada_revisao:false};const next={...current,...patch};
-  answers.set(Number(q.id),next);renderNavigator();
+  const q=questions[index];
+  const current=answers.get(Number(q.id))||{questao_id:q.id,resposta:null,marcada_revisao:false};
+  if(current.resposta&&patch.resposta&&patch.resposta!==current.resposta){
+    notice('Esta questão já foi respondida e não pode mais ser alterada.','error');
+    return false;
+  }
+  const next={...current,...patch};
   const {error}=await sb.rpc('salvar_resposta_simulado',{p_tentativa_id:Number(active.id),p_questao_id:Number(q.id),p_resposta:next.resposta||null,p_marcada:!!next.marcada_revisao});
-  if(error){console.error(error);notice('Não foi possível salvar esta resposta. Verifique sua conexão.','error')}
+  if(error){
+    console.error(error);
+    const msg=String(error.message||'');
+    if(msg.includes('RESPOSTA_BLOQUEADA')) notice('Esta questão já foi respondida e não pode mais ser alterada.','error');
+    else notice('Não foi possível salvar esta resposta. Verifique sua conexão.','error');
+    return false;
+  }
+  answers.set(Number(q.id),next);
+  renderNavigator();
+  return true;
+}
+async function savePosition(i=index){
+  if(!active)return;
+  const next=Math.max(0,Math.min(questions.length-1,Number(i)||0));
+  active.current_question_index=next;
+  const {error}=await sb.rpc('salvar_posicao_simulado',{p_tentativa_id:Number(active.id),p_indice:next});
+  if(error)console.error(error);
+}
+async function goToQuestion(i){
+  if(!Number.isInteger(i)||i<0||i>=questions.length)return;
+  index=i;
+  renderExam();
+  await savePosition(index);
+}
+async function answerAndAdvance(value){
+  const q=questions[index];
+  const existing=answers.get(Number(q.id));
+  if(existing?.resposta)return;
+  const ok=await saveCurrent({resposta:value});
+  if(!ok)return;
+  renderExam();
+  if(index<questions.length-1){
+    await goToQuestion(index+1);
+  }else{
+    await savePosition(index);
+    $('#finishSimulation').scrollIntoView({behavior:'smooth',block:'center'});
+  }
 }
 function startTimer(){
   const duration=Number(active.simulados.duracao_minutos||0)*60,start=new Date(active.iniciada_em).getTime();
@@ -127,13 +174,15 @@ async function loadRanking(simId){
 }
 
 export async function loadSimulados(context){
-  ctx=context;await loadList();
+  ctx=context;
+  const attemptParam=Number(new URLSearchParams(location.search).get('tentativa'));
+  if(Number.isInteger(attemptParam)&&attemptParam>0) await loadAttempt(attemptParam); else await loadList();
   $('#simulationCards')?.addEventListener('click',e=>{const start=e.target.dataset.startSim,resume=e.target.dataset.resumeSim,result=e.target.dataset.resultAttempt;if(start)return startSimulation(start);if(resume)return loadAttempt(Number(e.target.dataset.attempt));if(result)return loadResult(Number(result))});
-  $('#examOptions')?.addEventListener('change',e=>{if(e.target.name==='sim-answer')saveCurrent({resposta:e.target.value})});
+  $('#examOptions')?.addEventListener('change',e=>{if(e.target.name==='sim-answer')answerAndAdvance(e.target.value)});
   $('#markReview')?.addEventListener('click',()=>{const q=questions[index],a=answers.get(Number(q.id));saveCurrent({marcada_revisao:!a?.marcada_revisao}).then(renderExam)});
-  $('#prevQuestion')?.addEventListener('click',()=>{if(index>0){index--;renderExam()}});
-  $('#nextQuestion')?.addEventListener('click',()=>{if(index<questions.length-1){index++;renderExam()}else $('#finishSimulation').scrollIntoView({behavior:'smooth'})});
-  $('#examNavigator')?.addEventListener('click',e=>{const i=Number(e.target.dataset.gotoQ);if(Number.isInteger(i)&&i>=0&&i<questions.length){index=i;renderExam()}});
+  $('#prevQuestion')?.addEventListener('click',()=>{if(index>0)goToQuestion(index-1)});
+  $('#nextQuestion')?.addEventListener('click',()=>{if(index<questions.length-1)goToQuestion(index+1);else $('#finishSimulation').scrollIntoView({behavior:'smooth',block:'center'})});
+  $('#examNavigator')?.addEventListener('click',e=>{const i=Number(e.target.dataset.gotoQ);if(Number.isInteger(i)&&i>=0&&i<questions.length)goToQuestion(i)});
   $('#finishSimulation')?.addEventListener('click',()=>finishSimulation(false));
   $('#backToSimulations')?.addEventListener('click',loadList);$('#backFromResult')?.addEventListener('click',loadList);
   window.addEventListener('pagehide',stopTimer,{once:true});
