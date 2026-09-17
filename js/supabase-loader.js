@@ -1,6 +1,6 @@
 (function(){
   'use strict';
-  const VERSION='4.0.5';
+  const VERSION='4.1.0';
   function inject(src){return new Promise((resolve,reject)=>{const s=document.createElement('script');s.src=src;s.async=false;s.crossOrigin='anonymous';s.onload=()=>window.supabase?.createClient?resolve(true):reject(new Error('Biblioteca inválida'));s.onerror=()=>reject(new Error('Falha: '+src));document.head.appendChild(s)})}
   window.__FM_SUPABASE_READY=(async()=>{
     if(window.supabase?.createClient)return true;

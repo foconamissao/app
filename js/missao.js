@@ -21,7 +21,7 @@ function metaText(a){
 }
 async function fetchDay(date){
   const [{data:acts,error:ae},{data:prog,error:pe}]=await Promise.all([
-    sb.from('atividades').select('id,data,titulo,descricao,tipo,meta_quantidade,meta_minutos,ordem,disciplinas(nome),assuntos(nome),cronogramas(titulo,ativo)').eq('data',date).eq('ativo',true).order('ordem').order('id'),
+    sb.from('atividades').select('id,data,titulo,descricao,tipo,disciplina_id,assunto_id,meta_quantidade,meta_minutos,ordem,disciplinas(nome),assuntos(nome),cronogramas(titulo,ativo)').eq('data',date).eq('ativo',true).order('ordem').order('id'),
     sb.from('atividade_progresso').select('atividade_id,concluida,concluida_em').eq('user_id',ctx.user.id).eq('data',date)
   ]);
   if(ae||pe)throw ae||pe;
@@ -36,11 +36,11 @@ function render(items){
   const done=items.filter(x=>x.progress?.concluida).length;
   $('#missionProgressText').textContent=`${done} de ${items.length} concluída${items.length===1?'':'s'}`;
   $('#missionProgressBar').style.width=`${Math.round(done/items.length*100)}%`;
-  list.innerHTML=items.map(a=>`<label class="mission-item ${a.progress?.concluida?'done':''}">
+  list.innerHTML=items.map(a=>`<div class="mission-item-wrap"><label class="mission-item ${a.progress?.concluida?'done':''}">
     <input type="checkbox" data-activity="${a.id}" ${a.progress?.concluida?'checked':''}>
     <span class="mission-type">${typeIcon[a.tipo]||'🎯'}</span>
     <span class="mission-copy"><b>${esc(a.titulo)}</b><small>${esc(typeLabel[a.tipo]||a.tipo)}${metaText(a)?' · '+esc(metaText(a)):''}</small>${a.descricao?`<span>${esc(a.descricao)}</span>`:''}</span>
-  </label>`).join('');
+  </label>${a.tipo==='teoria'?`<a class="mini theory-mission-link" href="./teoria.html?disciplina=${a.disciplina_id||''}${a.assunto_id?'&assunto='+a.assunto_id:''}">📚 ABRIR RESUMO</a>`:''}</div>`).join('');
 }
 async function load(){
   const list=$('#missionList');list.innerHTML='<div class="empty">Carregando…</div>';

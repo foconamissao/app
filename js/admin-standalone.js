@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const VERSION='4.0.5';
+const VERSION='4.1.0';
 const SUPABASE_URL='https://zjnbmgkvnzdnaiszqhta.supabase.co';
 const SUPABASE_KEY='sb_publishable_vghGz23YWhZ4CNXMjkrslA_ZH1osJsI';
 const $=s=>document.querySelector(s);
@@ -35,7 +35,7 @@ async function main(){
    mountHeader(profile,sb); mountNavigation(sb);
    window.__FM_ADMIN_CONTEXT={user,profile,sb};
    try{
-     const mod=await timeout(import('./admin.js?v=4.0.5'),15000);
+     const mod=await timeout(import('./admin.js?v=4.1.0'),15000);
      if(typeof mod.setupAdmin!=='function') throw new Error('Inicializador da administração não encontrado.');
      await mod.setupAdmin({user,profile});
    }catch(e){showError('A área administrativa carregou parcialmente.',e?.message||String(e));}
