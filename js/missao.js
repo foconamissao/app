@@ -29,6 +29,20 @@ async function fetchDay(date){
   const pmap=new Map((prog||[]).map(p=>[p.atividade_id,p]));
   return visible.map(a=>({...a,progress:pmap.get(a.id)||null}));
 }
+function actionLink(a){
+  if(a.tipo==='teoria')return {href:`./teoria.html?disciplina=${a.disciplina_id||''}${a.assunto_id?'&assunto='+a.assunto_id:''}`,label:'📚 ABRIR RESUMO'};
+  if(a.tipo==='questoes'){
+    const p=new URLSearchParams();
+    p.set('quantidade',String(a.meta_quantidade||50));
+    if(a.disciplina_id)p.set('disciplina',String(a.disciplina_id));
+    if(a.assunto_id)p.set('assunto',String(a.assunto_id));
+    return {href:`./questoes.html?${p.toString()}`,label:'📝 ABRIR QUESTÕES'};
+  }
+  if(a.tipo==='simulado')return {href:'./simulados.html',label:'🏆 ABRIR SIMULADOS'};
+  if(a.tipo==='flashcards')return {href:'./flashcards.html',label:'🧠 ABRIR FLASHCARDS'};
+  if(a.tipo==='revisao')return {href:'./revisao.html',label:'🔁 ABRIR REVISÃO'};
+  return null;
+}
 function render(items){
   $('#missionDateLabel').textContent=fmtDate(currentDate);
   const list=$('#missionList');
@@ -36,11 +50,11 @@ function render(items){
   const done=items.filter(x=>x.progress?.concluida).length;
   $('#missionProgressText').textContent=`${done} de ${items.length} concluída${items.length===1?'':'s'}`;
   $('#missionProgressBar').style.width=`${Math.round(done/items.length*100)}%`;
-  list.innerHTML=items.map(a=>`<div class="mission-item-wrap"><label class="mission-item ${a.progress?.concluida?'done':''}">
+  list.innerHTML=items.map(a=>{const action=actionLink(a);return `<div class="mission-item-wrap"><label class="mission-item ${a.progress?.concluida?'done':''}">
     <input type="checkbox" data-activity="${a.id}" ${a.progress?.concluida?'checked':''}>
     <span class="mission-type">${typeIcon[a.tipo]||'🎯'}</span>
     <span class="mission-copy"><b>${esc(a.titulo)}</b><small>${esc(typeLabel[a.tipo]||a.tipo)}${metaText(a)?' · '+esc(metaText(a)):''}</small>${a.descricao?`<span>${esc(a.descricao)}</span>`:''}</span>
-  </label>${a.tipo==='teoria'?`<a class="mini theory-mission-link" href="./teoria.html?disciplina=${a.disciplina_id||''}${a.assunto_id?'&assunto='+a.assunto_id:''}">📚 ABRIR RESUMO</a>`:''}</div>`).join('');
+  </label>${action?`<a class="mini theory-mission-link" href="${action.href}">${action.label}</a>`:''}</div>`}).join('');
 }
 async function load(){
   const list=$('#missionList');list.innerHTML='<div class="empty">Carregando…</div>';
