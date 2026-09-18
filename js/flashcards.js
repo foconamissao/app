@@ -90,8 +90,9 @@ async function rate(rating){
 async function syncFlashMission(){
  const today=todayISO();
  const reviewedToday=reviews.filter(r=>todayISO(new Date(r.reviewed_at))===today).length;
- const {data:acts}=await sb.from('atividades').select('id,meta_quantidade,cronogramas(ativo)').eq('data',today).eq('tipo','flashcards').eq('ativo',true);
- for(const a of (acts||[]).filter(x=>!x.cronogramas||x.cronogramas.ativo!==false)){
+ const [{data:uo},{data:acts}]=await Promise.all([sb.from('usuario_objetivo').select('objetivo_id').eq('user_id',ctx.user.id).maybeSingle(),sb.from('atividades').select('id,meta_quantidade,cronogramas(ativo,objetivo_id)').eq('data',today).eq('tipo','flashcards').eq('ativo',true)]);
+ const objectiveId=uo?.objetivo_id?Number(uo.objetivo_id):null;
+ for(const a of (objectiveId?(acts||[]).filter(x=>x.cronogramas?.ativo!==false&&Number(x.cronogramas?.objetivo_id)===objectiveId):[])){
    const target=Number(a.meta_quantidade||0); if(!target||reviewedToday<target)continue;
    await sb.from('atividade_progresso').upsert({user_id:ctx.user.id,atividade_id:a.id,data:today,concluida:true,concluida_em:new Date().toISOString()},{onConflict:'user_id,atividade_id'});
  }

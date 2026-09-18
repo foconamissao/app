@@ -5,7 +5,7 @@ const esc=(v='')=>String(v).replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'
 const fmtDate=d=>new Intl.DateTimeFormat('pt-BR',{weekday:'long',day:'2-digit',month:'long',year:'numeric'}).format(new Date(`${d}T12:00:00`));
 const typeLabel={teoria:'Teoria',questoes:'Questões',flashcards:'Flashcards',revisao:'Revisão',aula:'Aula',simulado:'Simulado'};
 const typeIcon={teoria:'📖',questoes:'📝',flashcards:'🧠',revisao:'🔁',aula:'🎥',simulado:'🏆'};
-let ctx,currentDate;
+let ctx,currentDate,currentObjectiveId=null;
 
 function localDateISO(date=new Date()){
   const y=date.getFullYear(),m=String(date.getMonth()+1).padStart(2,'0'),d=String(date.getDate()).padStart(2,'0');
@@ -21,11 +21,11 @@ function metaText(a){
 }
 async function fetchDay(date){
   const [{data:acts,error:ae},{data:prog,error:pe}]=await Promise.all([
-    sb.from('atividades').select('id,data,titulo,descricao,tipo,disciplina_id,assunto_id,meta_quantidade,meta_minutos,ordem,disciplinas(nome),assuntos(nome),cronogramas(titulo,ativo)').eq('data',date).eq('ativo',true).order('ordem').order('id'),
+    sb.from('atividades').select('id,data,titulo,descricao,tipo,disciplina_id,assunto_id,meta_quantidade,meta_minutos,ordem,disciplinas(nome),assuntos(nome),cronogramas(titulo,ativo,objetivo_id)').eq('data',date).eq('ativo',true).order('ordem').order('id'),
     sb.from('atividade_progresso').select('atividade_id,concluida,concluida_em').eq('user_id',ctx.user.id).eq('data',date)
   ]);
   if(ae||pe)throw ae||pe;
-  const visible=(acts||[]).filter(a=>!a.cronogramas||a.cronogramas.ativo!==false);
+  const visible=currentObjectiveId?(acts||[]).filter(a=>a.cronogramas?.ativo!==false&&Number(a.cronogramas?.objetivo_id)===Number(currentObjectiveId)):[];
   const pmap=new Map((prog||[]).map(p=>[p.atividade_id,p]));
   return visible.map(a=>({...a,progress:pmap.get(a.id)||null}));
 }
@@ -46,7 +46,7 @@ function actionLink(a){
 function render(items){
   $('#missionDateLabel').textContent=fmtDate(currentDate);
   const list=$('#missionList');
-  if(!items.length){list.innerHTML='<div class="empty"><b>Nenhuma atividade publicada para esta data.</b><br><span>Use as setas para consultar outro dia.</span></div>';$('#missionProgressText').textContent='0 de 0 concluídas';$('#missionProgressBar').style.width='0%';return;}
+  if(!items.length){list.innerHTML=currentObjectiveId?'<div class="empty"><b>Nenhuma atividade publicada para esta data neste objetivo.</b><br><span>Use as setas para consultar outro dia.</span></div>':'<div class="empty"><b>Nenhum objetivo selecionado.</b><br><span>Escolha um edital em Meu objetivo para receber a missão correspondente.</span></div>';$('#missionProgressText').textContent='0 de 0 concluídas';$('#missionProgressBar').style.width='0%';return;}
   const done=items.filter(x=>x.progress?.concluida).length;
   $('#missionProgressText').textContent=`${done} de ${items.length} concluída${items.length===1?'':'s'}`;
   $('#missionProgressBar').style.width=`${Math.round(done/items.length*100)}%`;
@@ -71,6 +71,8 @@ async function toggleActivity(input){
 }
 export async function setupMissao(context){
   ctx=context;currentDate=localDateISO();
+  const {data:uo}=await sb.from('usuario_objetivo').select('objetivo_id').eq('user_id',ctx.user.id).maybeSingle();
+  currentObjectiveId=uo?.objetivo_id?Number(uo.objetivo_id):null;
   $('#missionDate').value=currentDate;
   $('#missionDate').addEventListener('change',e=>{currentDate=e.target.value||localDateISO();load()});
   $('#prevDay').addEventListener('click',()=>{const d=new Date(`${currentDate}T12:00:00`);d.setDate(d.getDate()-1);currentDate=localDateISO(d);$('#missionDate').value=currentDate;load()});

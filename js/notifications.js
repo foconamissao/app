@@ -16,10 +16,12 @@ async function pendingFlashcards(uid){
 
 export async function getNotifications(ctx){
   const uid=ctx.user.id, now=new Date(), today=dateISO(now);
+  const {data:uo}=await sb.from('usuario_objetivo').select('objetivo_id').eq('user_id',uid).maybeSingle();
+  const objectiveId=uo?.objetivo_id?Number(uo.objetivo_id):null;
   const [{data:avisos},{data:leituras},{data:acts},{data:prog},{data:sims},{data:attempts},fcDue]=await Promise.all([
     sb.from('avisos').select('*').eq('ativo',true).lte('inicio_em',now.toISOString()).or(`fim_em.is.null,fim_em.gte.${now.toISOString()}`).order('destaque',{ascending:false}).order('created_at',{ascending:false}),
     sb.from('aviso_leituras').select('aviso_id').eq('user_id',uid),
-    sb.from('atividades').select('id,titulo,tipo,cronogramas(ativo)').eq('data',today).eq('ativo',true),
+    sb.from('atividades').select('id,titulo,tipo,cronogramas(ativo,objetivo_id)').eq('data',today).eq('ativo',true),
     sb.from('atividade_progresso').select('atividade_id,concluida').eq('user_id',uid).eq('data',today),
     sb.from('simulados').select('id,titulo,data_liberacao,data_encerramento,tentativas_multiplas').eq('ativo',true).order('data_liberacao',{ascending:false}),
     sb.from('simulado_tentativas').select('id,simulado_id,status').eq('user_id',uid).order('iniciada_em',{ascending:false}),
@@ -28,7 +30,7 @@ export async function getNotifications(ctx){
   const read=new Set((leituras||[]).map(x=>Number(x.aviso_id)));
   const items=[];
   for(const a of (avisos||[])) items.push({kind:'aviso',id:Number(a.id),title:a.titulo,text:a.mensagem,href:null,highlight:!!a.destaque,unread:!read.has(Number(a.id))});
-  const validActs=(acts||[]).filter(a=>!a.cronogramas||a.cronogramas.ativo!==false);
+  const validActs=objectiveId?(acts||[]).filter(a=>a.cronogramas?.ativo!==false&&Number(a.cronogramas?.objetivo_id)===objectiveId):[];
   const done=new Set((prog||[]).filter(p=>p.concluida).map(p=>Number(p.atividade_id)));
   const pendingActs=validActs.filter(a=>!done.has(Number(a.id)));
   if(pendingActs.length)items.push({kind:'auto',title:'Missão do dia pendente',text:`Você ainda tem ${pendingActs.length} atividade${pendingActs.length===1?'':'s'} para concluir hoje.`,href:'./missao.html',unread:true});
