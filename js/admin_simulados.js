@@ -92,11 +92,14 @@ function validateQuestion(q){
   return errs;
 }
 function parsePackage(){
-  let obj; try{obj=JSON.parse($('#simulationJson').value)}catch{return notice('O pacote não está em JSON válido.','error')}
-  const meta=obj.simulado||{},items=obj.questoes||[];
-  if(!String(meta.titulo||'').trim()||!Array.isArray(items)||!items.length)return notice('O pacote precisa conter os dados do simulado e pelo menos uma questão.','error');const obj=objectives.find(o=>norm(o.titulo)===norm(meta.objetivo));if(!obj)return notice('O campo simulado.objetivo não corresponde a um objetivo cadastrado.','error');meta._objetivo_id=obj.id;
+  let pkg; try{pkg=JSON.parse($('#simulationJson').value)}catch{return notice('O pacote não está em JSON válido.','error')}
+  const meta=pkg.simulado||{},items=pkg.questoes||[];
+  if(!String(meta.titulo||'').trim()||!Array.isArray(items)||!items.length)return notice('O pacote precisa conter os dados do simulado e pelo menos uma questão.','error');
+  const objective=objectives.find(o=>norm(o.titulo)===norm(meta.objetivo));
+  if(!objective)return notice('O campo simulado.objetivo não corresponde a um objetivo cadastrado.','error');
+  meta._objetivo_id=objective.id;
   if(!Number(meta.duracao_minutos||0))return notice('Informe a duração do simulado no pacote.','error');
-  parsed={versao:obj.versao||'1.0',simulado:meta,questoes:items}; selected=new Set(items.map((_,i)=>i)); renderPreview();
+  parsed={versao:pkg.versao||'1.0',simulado:meta,questoes:items}; selected=new Set(items.map((_,i)=>i)); renderPreview();
 }
 function renderPreview(){
   const box=$('#simulationPreview'),summary=$('#simulationSummary'); if(!parsed){box.innerHTML='<div class="empty">Cole um pacote e clique em ANALISAR SIMULADO.</div>';summary.innerHTML='';return}
