@@ -1,7 +1,7 @@
 import {sb} from './supabase.js';
 const $=s=>document.querySelector(s);const esc=(v='')=>String(v).replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
 const today=()=>{const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`};
-function item(i,x){return `<article class="card plan-item ${x.primary?'primary':''}"><div class="plan-order">${i+1}</div><div class="plan-icon">${x.icon}</div><div><span class="eyebrow">${esc(x.kind)}</span><h3>${esc(x.title)}</h3><p>${esc(x.desc)}</p><small>${esc(x.meta||'')}</small></div><a class="btn ${x.primary?'':'secondary'}" href="${x.href}">${x.cta||'ABRIR'}</a></article>`}
+function item(x,i){return `<article class="card plan-item ${x.primary?'primary':''}"><div class="plan-order">${i+1}</div><div class="plan-icon">${x.icon}</div><div><span class="eyebrow">${esc(x.kind)}</span><h3>${esc(x.title)}</h3><p>${esc(x.desc)}</p><small>${esc(x.meta||'')}</small></div><a class="btn ${x.primary?'':'secondary'}" href="${x.href}">${x.cta||'ABRIR'}</a></article>`}
 function daysUntil(date){if(!date)return null;const a=new Date(),b=new Date(`${date}T12:00:00`);a.setHours(12,0,0,0);return Math.ceil((b-a)/86400000)}
 export async function loadPlan(ctx){const uid=ctx.user.id;const render=async()=>{try{$('#planStatus').textContent='ATUALIZANDO';const d=today();const [{data:acts},{data:prog},{data:errs},{data:cards},{data:revs},{data:running},{data:smart}]=await Promise.all([
  sb.from('atividades').select('id,titulo,tipo,meta_quantidade,meta_minutos,ordem,cronogramas(ativo)').eq('data',d).eq('ativo',true).order('ordem'),
