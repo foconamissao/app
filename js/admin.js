@@ -42,7 +42,7 @@ async function loadParticipants(){const {data,error}=await sb.from('profiles').s
 function bindParticipants(ctx){window.__adminUserId=ctx.user.id;$('#participantSearch')?.addEventListener('input',renderParticipants);$('#participantFilter')?.addEventListener('change',renderParticipants);$('#participantRows')?.addEventListener('click',async e=>{const b=e.target.closest('[data-part-action]');if(!b)return;const p=participants.find(x=>x.id===b.dataset.id);if(!p)return;const a=b.dataset.partAction;if(a==='editar'){const nome=prompt('Nome do participante:',p.nome||'');if(nome===null)return;const {error}=await sb.rpc('admin_set_participant',{p_user:p.id,p_status:p.status,p_nome:nome});if(error)return notice('Não foi possível editar o participante.','error');notice('Participante atualizado.');return loadParticipants()}if(a==='excluir'){if(!confirm(`Excluir definitivamente o cadastro de ${p.nome||p.email}?`))return;const {error}=await sb.rpc('admin_delete_participant',{p_user:p.id});if(error)return notice('Não foi possível excluir o participante.','error');notice('Cadastro excluído.');return loadParticipants()}const status=a==='aprovar'?'aprovado':a;const {error}=await sb.rpc('admin_set_participant',{p_user:p.id,p_status:status,p_nome:null});if(error)return notice('Não foi possível alterar o acesso.','error');notice(status==='aprovado'?'Participante aprovado.':status==='nao_aprovado'?'Cadastro não aprovado.':'Acesso desativado.');await loadParticipants()})}
 async function loadFeature(file,exportName,args=[]){
   try{
-    const mod=await import(`${file}?v=4.3.6`);
+    const mod=await import(`${file}?v=4.4.1`);
     const fn=mod?.[exportName];
     if(typeof fn!=='function') throw new Error(`Função ${exportName} ausente.`);
     await fn(...args);

@@ -3,7 +3,7 @@ import {sb} from './supabase.js';
 const $=s=>document.querySelector(s);
 const esc=(v='')=>String(v).replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
 const norm=s=>String(s||'').trim().toLowerCase().replace(/\s+/g,' ');
-let simulations=[], existingQuestions=new Set(), parsed=null, selected=new Set();
+let objectives=[],simulations=[], existingQuestions=new Set(), parsed=null, selected=new Set();
 
 function notice(msg,type='success'){
   const el=$('#adminNotice'); if(!el)return;
@@ -27,7 +27,7 @@ function statusOf(s){
 }
 function resetForm(){
   const f=$('#simulationForm'); if(!f)return;
-  f.reset(); f.elements.id.value=''; f.elements.duracao_minutos.value=150; f.elements.correcao_modo.value='imediata'; f.elements.ativo.checked=true; f.elements.mostrar_ranking.checked=true; f.elements.tentativas_multiplas.checked=false;
+  f.reset(); f.elements.id.value=''; f.elements.duracao_minutos.value=180; f.elements.correcao_modo.value='imediata'; f.elements.ativo.checked=true; f.elements.mostrar_ranking.checked=true; f.elements.tentativas_multiplas.checked=false;
   $('#cancelSimulationEdit')?.classList.add('hidden');
 }
 async function loadExistingQuestions(){
@@ -35,12 +35,13 @@ async function loadExistingQuestions(){
   existingQuestions=new Set((data||[]).map(x=>norm(x.enunciado)));
 }
 async function refresh(){
-  const [{data:sims,error},{data:links},{data:attempts}]=await Promise.all([
+  const [{data:objs},{data:sims,error},{data:links},{data:attempts}]=await Promise.all([
+    sb.from('concursos_objetivos').select('id,titulo,ativo').eq('ativo',true).order('titulo'),
     sb.from('simulados').select('*').order('created_at',{ascending:false}),
     sb.from('simulado_questoes').select('simulado_id'),
     sb.from('simulado_tentativas').select('simulado_id,status')
   ]);
-  if(error){notice('Não foi possível carregar os simulados.','error');return}
+  if(error){notice('Não foi possível carregar os simulados.','error');return}objectives=objs||[];const sel=$('#simulationObjective');if(sel){const old=sel.value;sel.innerHTML='<option value="">Selecione…</option>'+objectives.map(o=>`<option value="${o.id}">${esc(o.titulo)}</option>`).join('');if([...sel.options].some(o=>o.value===old))sel.value=old}
   const qCount={},aCount={};
   (links||[]).forEach(x=>qCount[x.simulado_id]=(qCount[x.simulado_id]||0)+1);
   (attempts||[]).forEach(x=>{if(x.status==='finalizada')aCount[x.simulado_id]=(aCount[x.simulado_id]||0)+1});
@@ -53,7 +54,7 @@ function renderList(){
   box.innerHTML=simulations.map(s=>{
     const [label,cls]=statusOf(s); const release=s.data_liberacao?new Date(s.data_liberacao).toLocaleString('pt-BR'):'Liberação imediata';
     return `<article class="card admin-sim-item ${!s.ativo?'is-inactive':''}">
-      <div class="admin-sim-head"><div><div class="sim-badges"><span class="badge ${cls}">${label}</span><span class="badge">${s._questions} questões</span><span class="badge">${s.duracao_minutos} min</span></div><h3>${esc(s.titulo)}</h3><p class="muted">${esc(s.descricao||'Sem descrição')}</p></div><div class="actions"><button class="mini" data-edit-sim="${s.id}">Editar</button><button class="mini" data-toggle-sim="${s.id}">${s.ativo?'Ocultar':'Publicar'}</button><button class="mini danger-mini" data-delete-sim="${s.id}">Excluir</button></div></div>
+      <div class="admin-sim-head"><div><div class="sim-badges"><span class="badge ${cls}">${label}</span><span class="badge">${esc(objectives.find(o=>Number(o.id)===Number(s.objetivo_id))?.titulo||'Sem objetivo')}</span><span class="badge">${s._questions} questões</span><span class="badge">${s.duracao_minutos} min</span></div><h3>${esc(s.titulo)}</h3><p class="muted">${esc(s.descricao||'Sem descrição')}</p></div><div class="actions"><button class="mini" data-edit-sim="${s.id}">Editar</button><button class="mini" data-toggle-sim="${s.id}">${s.ativo?'Ocultar':'Publicar'}</button><button class="mini danger-mini" data-delete-sim="${s.id}">Excluir</button></div></div>
       <div class="sim-admin-meta"><span>📅 ${esc(release)}</span>${s.data_encerramento?`<span>⏳ até ${new Date(s.data_encerramento).toLocaleString('pt-BR')}</span>`:''}<span>✅ ${s._attempts} conclusão(ões)</span><span>${s.tentativas_multiplas?'↻ Múltiplas tentativas':'① Tentativa única'}</span><span>${s.correcao_modo==='encerramento'?'🔒 Correção após encerramento':'📖 Correção após finalizar'}</span></div>
     </article>`;
   }).join('');
@@ -61,7 +62,7 @@ function renderList(){
 function editSimulation(id){
   const s=simulations.find(x=>Number(x.id)===Number(id)); if(!s)return;
   const f=$('#simulationForm');
-  f.elements.id.value=s.id; f.elements.titulo.value=s.titulo||''; f.elements.descricao.value=s.descricao||'';
+  f.elements.id.value=s.id; f.elements.objetivo_id.value=s.objetivo_id||''; f.elements.titulo.value=s.titulo||''; f.elements.descricao.value=s.descricao||'';
   f.elements.data_liberacao.value=localInput(s.data_liberacao); f.elements.data_encerramento.value=localInput(s.data_encerramento);
   f.elements.duracao_minutos.value=s.duracao_minutos||150; f.elements.correcao_modo.value=s.correcao_modo||'imediata';
   f.elements.tentativas_multiplas.checked=!!s.tentativas_multiplas; f.elements.mostrar_ranking.checked=s.mostrar_ranking!==false; f.elements.ativo.checked=!!s.ativo;
@@ -72,8 +73,8 @@ async function saveSimulation(e){
   const start=fd.get('data_liberacao'),end=fd.get('data_encerramento');
   if(start&&end&&new Date(end)<=new Date(start))return notice('O encerramento deve ser posterior à liberação.','error');
   if(fd.get('correcao_modo')==='encerramento'&&!end)return notice('Informe o encerramento para liberar a correção somente depois do prazo.','error');
-  const payload={titulo:String(fd.get('titulo')||'').trim(),descricao:String(fd.get('descricao')||'').trim()||null,data_liberacao:toIso(start),data_encerramento:toIso(end),duracao_minutos:Number(fd.get('duracao_minutos')||150),tentativas_multiplas:f.elements.tentativas_multiplas.checked,correcao_modo:String(fd.get('correcao_modo')||'imediata'),mostrar_ranking:f.elements.mostrar_ranking.checked,ativo:f.elements.ativo.checked};
-  if(!payload.titulo||payload.duracao_minutos<1)return notice('Preencha título e duração corretamente.','error');
+  const payload={objetivo_id:Number(fd.get('objetivo_id')||0),titulo:String(fd.get('titulo')||'').trim(),descricao:String(fd.get('descricao')||'').trim()||null,data_liberacao:toIso(start),data_encerramento:toIso(end),duracao_minutos:Number(fd.get('duracao_minutos')||150),tentativas_multiplas:f.elements.tentativas_multiplas.checked,correcao_modo:String(fd.get('correcao_modo')||'imediata'),mostrar_ranking:f.elements.mostrar_ranking.checked,ativo:f.elements.ativo.checked};
+  if(!payload.objetivo_id||!payload.titulo||payload.duracao_minutos<1)return notice('Selecione o objetivo e preencha título e duração corretamente.','error');
   f.querySelectorAll('button,input,select,textarea').forEach(x=>x.disabled=true);
   const result=id?await sb.from('simulados').update(payload).eq('id',id):await sb.from('simulados').insert({...payload,created_by:(await sb.auth.getUser()).data.user?.id});
   f.querySelectorAll('button,input,select,textarea').forEach(x=>x.disabled=false);
@@ -93,7 +94,7 @@ function validateQuestion(q){
 function parsePackage(){
   let obj; try{obj=JSON.parse($('#simulationJson').value)}catch{return notice('O pacote não está em JSON válido.','error')}
   const meta=obj.simulado||{},items=obj.questoes||[];
-  if(!String(meta.titulo||'').trim()||!Array.isArray(items)||!items.length)return notice('O pacote precisa conter os dados do simulado e pelo menos uma questão.','error');
+  if(!String(meta.titulo||'').trim()||!Array.isArray(items)||!items.length)return notice('O pacote precisa conter os dados do simulado e pelo menos uma questão.','error');const obj=objectives.find(o=>norm(o.titulo)===norm(meta.objetivo));if(!obj)return notice('O campo simulado.objetivo não corresponde a um objetivo cadastrado.','error');meta._objetivo_id=obj.id;
   if(!Number(meta.duracao_minutos||0))return notice('Informe a duração do simulado no pacote.','error');
   parsed={versao:obj.versao||'1.0',simulado:meta,questoes:items}; selected=new Set(items.map((_,i)=>i)); renderPreview();
 }
@@ -122,11 +123,12 @@ async function importPackage(){
   const payload={versao:parsed.versao,simulado:parsed.simulado,questoes:chosen};
   const {data,error}=await sb.rpc('importar_simulado_oficial',{p_payload:payload}); btn.disabled=false;btn.textContent='IMPORTAR SIMULADO';
   if(error){console.error(error);return notice('Não foi possível importar o simulado. Confira o pacote e tente novamente.','error')}
+  const objId=Number(parsed.simulado._objetivo_id)||0;if(objId){const {data:row}=await sb.from('simulados').select('id').eq('titulo',parsed.simulado.titulo).order('created_at',{ascending:false}).limit(1).maybeSingle();if(row?.id)await sb.from('simulados').update({objetivo_id:objId}).eq('id',row.id)}
   const r=data||{}; notice(`Simulado importado: ${r.questoes_vinculadas ?? chosen.length} questões. ${r.questoes_novas ?? 0} nova(s) incluída(s) no banco e ${r.questoes_reutilizadas ?? 0} reutilizada(s).`);
   parsed=null;selected.clear();$('#simulationJson').value='';renderPreview();await loadExistingQuestions();await refresh();
 }
 function copyTemplate(){
-  const txt=`Gere um simulado oficial para a plataforma Foco na Missão. Responda SOMENTE com JSON válido, sem markdown. Use o edital, o padrão da banca, a distribuição e o nível solicitados. Estrutura:\n{"versao":"1.0","simulado":{"titulo":"Simulado Geral #01","descricao":"...","data_liberacao":"2026-09-20T08:00:00-03:00","data_encerramento":"2026-09-20T12:00:00-03:00","duracao_minutos":150,"tentativas_multiplas":false,"correcao_modo":"encerramento","mostrar_ranking":true,"ativo":true},"questoes":[{"disciplina":"Direito Penal","peso_disciplina":2,"assunto":"Crimes contra a Administração Pública","recorrencia_assunto":5,"dificuldade_assunto":4,"subassunto":"Peculato","banca":"BANCA","concurso":"CONCURSO","ano":2026,"recorrencia":5,"dificuldade":4,"peso_simulado":2,"enunciado":"...","alternativas":{"A":"...","B":"...","C":"...","D":"...","E":"..."},"correta":"C","comentario":"Explique a correta e, quando relevante, por que as demais estão erradas.","ponto_fixacao":"Mini-teoria de 2 a 4 frases que explique a regra ou conceito cobrado e ajude a memorizar. Não repita simplesmente a resposta correta. Inclua contraste, exceção, bizu ou mnemônico quando isso realmente ajudar.","base_legal":"Dispositivo ou referência quando aplicável.","palavra_chave":"...","macete":"...","tags":["..."],"flashcard":{"frente":"...","verso":"...","recorrencia":5,"dificuldade":4}}]}\nRegras: peso_simulado é o valor daquela questão na pontuação da prova; recorrencia e dificuldade usam escala de 1 a 5 apenas como campos de classificação; as questões devem ser autorais, compatíveis com o padrão informado e juridicamente atualizadas quando aplicável. Não invente fundamento legal. Se o material fornecido não sustentar uma informação, não a trate como fato.`;
+  const txt=`Gere um simulado oficial para a plataforma Foco na Missão. Responda SOMENTE com JSON válido, sem markdown. Use o edital, o padrão da banca, a distribuição e o nível solicitados. Estrutura:\n{"versao":"1.0","simulado":{"objetivo":"TÍTULO EXATO DO OBJETIVO","titulo":"Simulado Geral #01","descricao":"...","data_liberacao":"2026-09-20T08:00:00-03:00","data_encerramento":"2026-09-20T12:00:00-03:00","duracao_minutos":150,"tentativas_multiplas":false,"correcao_modo":"encerramento","mostrar_ranking":true,"ativo":true},"questoes":[{"disciplina":"Direito Penal","peso_disciplina":2,"assunto":"Crimes contra a Administração Pública","recorrencia_assunto":5,"dificuldade_assunto":4,"subassunto":"Peculato","banca":"BANCA","concurso":"CONCURSO","ano":2026,"recorrencia":5,"dificuldade":4,"peso_simulado":2,"enunciado":"...","alternativas":{"A":"...","B":"...","C":"...","D":"..."},"correta":"C","comentario":"Explique a correta e, quando relevante, por que as demais estão erradas.","ponto_fixacao":"Mini-teoria de 2 a 4 frases que explique a regra ou conceito cobrado e ajude a memorizar. Não repita simplesmente a resposta correta. Inclua contraste, exceção, bizu ou mnemônico quando isso realmente ajudar.","base_legal":"Dispositivo ou referência quando aplicável.","palavra_chave":"...","macete":"...","tags":["..."],"flashcard":{"frente":"...","verso":"...","recorrencia":5,"dificuldade":4}}]}\nRegras: peso_simulado é o valor daquela questão na pontuação da prova; recorrencia e dificuldade usam escala de 1 a 5 apenas como campos de classificação; as questões devem ser autorais, compatíveis com o padrão informado e juridicamente atualizadas quando aplicável. Não invente fundamento legal. Se o material fornecido não sustentar uma informação, não a trate como fato.`;
   navigator.clipboard.writeText(txt).then(()=>notice('Modelo de simulado copiado.')).catch(()=>notice('Não foi possível copiar automaticamente.','error'));
 }
 

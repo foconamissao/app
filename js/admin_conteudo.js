@@ -1,7 +1,7 @@
 import {sb} from './supabase.js';
 const $=s=>document.querySelector(s);
 const esc=(v='')=>String(v).replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
-let parsed=null, selected=new Set(), existing=[], analysis=[];
+let parsed=null, selected=new Set(), existing=[], analysis=[], objectives=[], packageObjective=null;
 const norm=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim().toLowerCase().replace(/[^a-z0-9\s]/g,' ').replace(/\s+/g,' ');
 const stop=new Set('a o as os um uma uns umas de da do das dos em no na nos nas para por com sem que se e ou ao aos à às é sao ser foi eram como mais menos muito muita muitos muitas não nao sua seu suas seus este esta estes estas isso isto aquele aquela aqueles aquelas qual quais quando onde quem cujo cuja cujos cujas'.split(' '));
 const clampLevel=(v,fallback=3)=>{const n=Number(v);return Number.isFinite(n)?Math.min(5,Math.max(1,Math.round(n))):fallback};
@@ -29,9 +29,9 @@ function similarity(a,b){
  return Math.max(jacc,(jacc*.65)+(contain*.35));
 }
 async function loadExisting(){
- const {data,error}=await sb.from('questoes').select('id,enunciado').limit(10000);
- if(error){existing=[];return}
- existing=(data||[]).map(x=>({id:x.id,enunciado:x.enunciado||'',key:norm(x.enunciado),tokens:tokenSet(x.enunciado)}));
+ const [{data,error},{data:o,error:oe}]=await Promise.all([sb.from('questoes').select('id,enunciado').limit(10000),sb.from('concursos_objetivos').select('id,titulo,ativo').eq('ativo',true).order('titulo')]);
+ if(error){existing=[]}else existing=(data||[]).map(x=>({id:x.id,enunciado:x.enunciado||'',key:norm(x.enunciado),tokens:tokenSet(x.enunciado)}));
+ if(oe){objectives=[]}else objectives=o||[];
 }
 function analyzePackage(items){
  const keys=items.map(q=>norm(q?.enunciado));
@@ -56,7 +56,8 @@ function analyzePackage(items){
 function parseInput(){
  let obj;try{obj=JSON.parse($('#bulkContent').value)}catch{return notice('O conteúdo não está em um JSON válido.','error')}
  const items=Array.isArray(obj)?obj:(obj.questoes||[]);if(!Array.isArray(items)||!items.length)return notice('Nenhuma questão foi encontrada no pacote.','error');
- parsed={versao:obj.versao||'1.0',questoes:items};analysis=analyzePackage(items);selected=new Set(items.map((_,i)=>i).filter(i=>analysis[i].status==='pronta'));
+ packageObjective=Array.isArray(obj)?null:objectives.find(o=>norm(o.titulo)===norm(obj.objetivo));if(!packageObjective)return notice('Informe no pacote o campo objetivo com o título exato cadastrado em Meu objetivo.','error');
+ parsed={versao:obj.versao||'1.0',objetivo:obj.objetivo,questoes:items};analysis=analyzePackage(items);selected=new Set(items.map((_,i)=>i).filter(i=>analysis[i].status==='pronta'));
  $('#bulkWorkspace').classList.remove('hidden');renderPreview();$('#bulkWorkspace').scrollIntoView({behavior:'smooth',block:'start'});
 }
 function visibleIndexes(){
@@ -81,7 +82,7 @@ function renderPreview(){
    const meta=analysis[i],checked=selected.has(i)?'checked':'',blocked=meta.errors.length?'disabled':'',hide=visible.has(i)?'':' content-row-hidden';
    return `<tr class="${hide.trim()}" data-bulk-row="${i}"><td><input type="checkbox" data-bulk-select="${i}" ${checked} ${blocked}></td><td>${i+1}</td><td><b>${esc(q.disciplina||'—')}</b><small class="table-sub">${esc(q.assunto||'—')}${q.subassunto?` · ${esc(q.subassunto)}`:''}</small></td><td>${esc(String(q.enunciado||'').slice(0,115))}${String(q.enunciado||'').length>115?'…':''}</td><td>${q.flashcard?'✅':'—'}</td><td>${statusMarkup(meta)}</td></tr>`;
  }).join('');
- summary.innerHTML=`<b>${parsed.questoes.length}</b> questões · <b>${counts.pronta}</b> prontas · <b>${counts.duplicada}</b> duplicadas · <b>${counts.semelhante}</b> semelhantes · <b>${counts.problema}</b> com problemas · <b>${flash}</b> flashcards`;
+ summary.innerHTML=`<b>${esc(packageObjective?.titulo||parsed.objetivo||'')}</b> · <b>${parsed.questoes.length}</b> questões · <b>${counts.pronta}</b> prontas · <b>${counts.duplicada}</b> duplicadas · <b>${counts.semelhante}</b> semelhantes · <b>${counts.problema}</b> com problemas · <b>${flash}</b> flashcards`;
  box.innerHTML=`<div class="table-wrap"><table><thead><tr><th></th><th>#</th><th>Classificação</th><th>Enunciado</th><th>Card</th><th>Validação</th></tr></thead><tbody>${rows}</tbody></table></div>`;
  updateSelectionState();
 }
@@ -109,12 +110,14 @@ async function importSelected(){
  const {data,error}=await sb.rpc('importar_pacote_conteudo',{p_payload:payload});btn.disabled=false;btn.textContent='IMPORTAR SELECIONADAS';
  if(error){console.error(error);return notice('Não foi possível importar o pacote. Confira os dados e tente novamente.','error')}
  const r=data||{},similar=idx.filter(i=>analysis[i].similar).length;
+ await loadExisting();
+ if(packageObjective){const byKey=new Map(existing.map(x=>[x.key,x.id])),links=[];for(const item of items){const qid=byKey.get(norm(item.enunciado));if(qid)links.push({objetivo_id:packageObjective.id,questao_id:qid})}for(let i=0;i<links.length;i+=200){const {error:le}=await sb.from('objetivo_questoes').upsert(links.slice(i,i+200),{onConflict:'objetivo_id,questao_id'});if(le){console.error(le);return notice('As questões foram importadas, mas não foi possível vinculá-las ao objetivo. Confira o SQL da V4.4.1.','error')}}}
  await registerHistory({selected:items.length,imported:Number(r.questoes_importadas||0),flashcards:Number(r.flashcards_importados||0),duplicates:Number(r.duplicadas_ignoradas||0),similar});
  notice(`Importação concluída: ${r.questoes_importadas||0} questões e ${r.flashcards_importados||0} flashcards. ${r.duplicadas_ignoradas||0} duplicidade(s) ignorada(s).`);
- await loadExisting();parsed=null;analysis=[];selected.clear();$('#bulkContent').value='';renderPreview();await loadHistory();
+ parsed=null;packageObjective=null;analysis=[];selected.clear();$('#bulkContent').value='';renderPreview();await loadHistory();
 }
 function copyTemplate(){
- const txt=`Gere conteúdo para a plataforma Foco na Missão seguindo os campos de prioridade informados no modelo. Responda SOMENTE com JSON válido, sem markdown. Estrutura:\n{"versao":"1.0","questoes":[{"disciplina":"Direito Penal","peso_disciplina":2,"assunto":"Crimes contra a Administração Pública","recorrencia_assunto":5,"dificuldade_assunto":4,"subassunto":"Peculato","banca":"BANCA","concurso":"CONCURSO","ano":2026,"recorrencia":5,"dificuldade":4,"enunciado":"...","alternativas":{"A":"...","B":"...","C":"...","D":"...","E":"..."},"correta":"C","comentario":"Explique a correta e, quando relevante, por que as demais estão erradas.","ponto_fixacao":"Mini-teoria de 2 a 4 frases que explique a regra ou conceito cobrado e ajude a memorizar. Não repita simplesmente a resposta correta. Inclua contraste, exceção, bizu ou mnemônico quando isso realmente ajudar.","base_legal":"Dispositivo ou referência quando aplicável.","palavra_chave":"...","macete":"...","tags":["..."],"flashcard":{"frente":"...","verso":"...","recorrencia":5,"dificuldade":4}}]}\nRegras: recorrencia e dificuldade usam escala 1 a 5; peso_disciplina deve refletir o peso do edital; questões devem ser autorais, compatíveis com o padrão da banca, e não inventar fundamento legal. Se uma informação não estiver sustentada pelo material fornecido, não a trate como fato.`;
+ const txt=`Gere conteúdo para a plataforma Foco na Missão seguindo os campos de prioridade informados no modelo. Responda SOMENTE com JSON válido, sem markdown. Estrutura:\n{"versao":"1.0","objetivo":"TÍTULO EXATO DO OBJETIVO","questoes":[{"disciplina":"Direito Penal","peso_disciplina":2,"assunto":"Crimes contra a Administração Pública","recorrencia_assunto":5,"dificuldade_assunto":4,"subassunto":"Peculato","banca":"BANCA","concurso":"CONCURSO","ano":2026,"recorrencia":5,"dificuldade":4,"enunciado":"...","alternativas":{"A":"...","B":"...","C":"...","D":"...","E":"..."},"correta":"C","comentario":"Explique a correta e, quando relevante, por que as demais estão erradas.","ponto_fixacao":"Mini-teoria de 2 a 4 frases que explique a regra ou conceito cobrado e ajude a memorizar. Não repita simplesmente a resposta correta. Inclua contraste, exceção, bizu ou mnemônico quando isso realmente ajudar.","base_legal":"Dispositivo ou referência quando aplicável.","palavra_chave":"...","macete":"...","tags":["..."],"flashcard":{"frente":"...","verso":"...","recorrencia":5,"dificuldade":4}}]}\nRegras: recorrencia e dificuldade usam escala 1 a 5; peso_disciplina deve refletir o peso do edital; questões devem ser autorais, compatíveis com o padrão da banca, e não inventar fundamento legal. Se uma informação não estiver sustentada pelo material fornecido, não a trate como fato.`;
  navigator.clipboard.writeText(txt).then(()=>notice('Modelo para IA copiado.')).catch(()=>notice('Não foi possível copiar automaticamente.','error'));
 }
 function fmtDate(v){if(!v)return'—';try{return new Date(v).toLocaleString('pt-BR')}catch{return'—'}}

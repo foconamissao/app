@@ -60,10 +60,7 @@ async function loadList(){
   active=null;
   stopTimer();
   clearAttemptUrl();
-  const [{data:sims,error},{data:ats,error:ae}]=await Promise.all([
-    sb.from('simulados').select('*').eq('ativo',true).order('data_liberacao',{ascending:false}),
-    sb.from('simulado_tentativas').select('*').eq('user_id',ctx.user.id).order('iniciada_em',{ascending:false})
-  ]);
+  const {data:uo}=await sb.from('usuario_objetivo').select('objetivo_id').eq('user_id',ctx.user.id).maybeSingle();const objectiveId=uo?.objetivo_id?Number(uo.objetivo_id):null;const simQuery=objectiveId?sb.from('simulados').select('*').eq('ativo',true).eq('objetivo_id',objectiveId).order('data_liberacao',{ascending:false}):Promise.resolve({data:[],error:null});const [{data:sims,error},{data:ats,error:ae}]=await Promise.all([simQuery,sb.from('simulado_tentativas').select('*').eq('user_id',ctx.user.id).order('iniciada_em',{ascending:false})]);
   if(error||ae){notice('Não foi possível carregar os simulados.','error');return}
   simulations=sims||[];attempts=ats||[];renderList();show('#simulationListView');
 }

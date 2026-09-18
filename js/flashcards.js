@@ -6,7 +6,7 @@ const todayISO=(d=new Date())=>`${d.getFullYear()}-${String(d.getMonth()+1).padS
 const addDays=(iso,days)=>{const [y,m,d]=iso.split('-').map(Number);const dt=new Date(y,m-1,d);dt.setDate(dt.getDate()+days);return `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`};
 
 let ctx, cards=[], reviews=[], latest=new Map(), historyByCard=new Map(), queue=[], pos=0, revealed=false, sessionStats={total:0,ratings:[0,0,0,0]}, requeued=new Map();
-let disciplines=[],topics=[];
+let disciplines=[],topics=[],currentObjectiveId=null,allowedDisciplineIds=new Set(),allowedTopicIds=new Set();
 
 function notice(msg,type='success'){
  const el=$('#flashNotice'); if(!el)return;
@@ -126,6 +126,7 @@ async function savePersonal(e){
 }
 async function load(){
  const uid=ctx.user.id;
+ const {data:uo}=await sb.from('usuario_objetivo').select('objetivo_id').eq('user_id',uid).maybeSingle();currentObjectiveId=uo?.objetivo_id?Number(uo.objetivo_id):null;let od=[],oa=[];if(currentObjectiveId){const rr=await Promise.all([sb.from('objetivo_disciplinas').select('disciplina_id').eq('objetivo_id',currentObjectiveId),sb.from('objetivo_assuntos').select('assunto_id').eq('objetivo_id',currentObjectiveId)]);od=rr[0].data||[];oa=rr[1].data||[]}allowedDisciplineIds=new Set(od.map(x=>Number(x.disciplina_id)));allowedTopicIds=new Set(oa.map(x=>Number(x.assunto_id)));
  const [{data:c,error:ce},{data:r,error:re},{data:d},{data:t}]=await Promise.all([
    sb.from('flashcards').select('id,disciplina_id,assunto_id,frente,verso,user_id,recorrencia,dificuldade,created_at,disciplinas(id,nome,peso),assuntos(id,nome,recorrencia,dificuldade)').eq('ativo',true).order('created_at'),
    sb.from('flashcard_revisoes').select('id,flashcard_id,dificuldade,proxima_revisao,reviewed_at,intervalo_dias,sequencia').eq('user_id',uid).order('reviewed_at'),
@@ -133,7 +134,7 @@ async function load(){
    sb.from('assuntos').select('id,nome,disciplina_id,recorrencia,dificuldade').eq('ativo',true).order('nome')
  ]);
  if(ce||re){$('#flashSetup').innerHTML='<div class="empty">Não foi possível carregar seus flashcards.</div>';return}
- cards=c||[];reviews=r||[];disciplines=d||[];topics=t||[];indexReviews();fillFilters();renderStats();renderPersonal();renderHistory();
+ cards=currentObjectiveId?(c||[]).filter(x=>x.user_id===uid||(x.assunto_id&&allowedTopicIds.has(Number(x.assunto_id)))||(!x.assunto_id&&allowedDisciplineIds.has(Number(x.disciplina_id)))):(c||[]);reviews=r||[];disciplines=currentObjectiveId?(d||[]).filter(x=>allowedDisciplineIds.has(Number(x.id))):(d||[]);topics=currentObjectiveId?(t||[]).filter(x=>allowedTopicIds.has(Number(x.id))):(t||[]);indexReviews();fillFilters();renderStats();renderPersonal();renderHistory();
 }
 function bind(){
  $('#flashDiscipline').addEventListener('change',()=>{fillFilters();renderStats()}); $('#flashTopic').addEventListener('change',renderStats); $('#flashSource').addEventListener('change',renderStats);
