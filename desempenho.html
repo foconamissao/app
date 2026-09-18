@@ -43,7 +43,32 @@
 <main class="main">
 <header class="topbar"><div><button id="mobileMenu" class="btn secondary mobile-menu">☰</button><h1 id="pageTitle">Desempenho</h1></div><div class="toolbar"><span id="userName" class="muted"></span></div></header>
 
-<div class="section-title performance-title"><div><span class="eyebrow">SEU PROGRESSO</span><h2>Desempenho</h2><p class="muted">Acompanhe sua evolução e identifique onde vale concentrar seus estudos.</p></div><div class="performance-period"><label for="performancePeriod">Período</label><select id="performancePeriod"><option value="7">Últimos 7 dias</option><option value="30" selected>Últimos 30 dias</option><option value="90">Últimos 90 dias</option><option value="all">Todo o histórico</option></select></div></div>
+<div class="section-title performance-title">
+  <div>
+    <span class="eyebrow">SEU PROGRESSO</span>
+    <h2>Desempenho</h2>
+    <p class="muted">Acompanhe sua evolução e identifique onde vale concentrar seus estudos.</p>
+  </div>
+  <div class="performance-filters">
+    <div class="performance-period">
+      <label for="performancePeriod">Período</label>
+      <select id="performancePeriod">
+        <option value="7">Últimos 7 dias</option>
+        <option value="30" selected>Últimos 30 dias</option>
+        <option value="90">Últimos 90 dias</option>
+        <option value="all">Todo o histórico</option>
+      </select>
+    </div>
+    <div class="performance-period">
+      <label for="performanceSource">Origem</label>
+      <select id="performanceSource">
+        <option value="all" selected>Todas</option>
+        <option value="questoes">Banco de questões</option>
+        <option value="simulado">Simulados</option>
+      </select>
+    </div>
+  </div>
+</div>
 <div id="performanceNotice" class="notice hidden"></div>
 
 <section class="grid performance-stats">
@@ -51,6 +76,16 @@
   <div class="card stat"><span>Aproveitamento</span><b id="perfAccuracy">—</b><small id="perfAccuracyDelta"></small></div>
   <div class="card stat"><span>Tempo em questões</span><b id="perfTime">—</b><small id="perfAvgTime"></small></div>
   <div class="card stat"><span>Flashcards revisados</span><b id="perfFlashcards">—</b><small id="perfFlashMemory"></small></div>
+</section>
+
+<section class="card performance-card source-breakdown-card">
+  <div class="performance-card-head">
+    <div>
+      <span class="eyebrow">ORIGEM DAS RESPOSTAS</span>
+      <h3>Banco de questões x simulados</h3>
+    </div>
+  </div>
+  <div id="sourceBreakdown" class="source-breakdown"></div>
 </section>
 
 <section class="grid performance-grid-two">
@@ -73,7 +108,7 @@
 <section class="card performance-card"><div class="performance-card-head"><div><span class="eyebrow">ERROS RECORRENTES</span><h3>Questões que mais voltaram ao caderno</h3></div></div><div id="recurringErrors" class="recurring-errors"></div></section>
 </main>
 </div>
-<script src="./js/cache-recovery.js?v=4.3.2"></script><script src="./js/runtime-guard.js?v=4.3.2"></script><script src="./js/supabase-loader.js?v=4.3.2"></script>
-<script type="module">import {runPage} from './js/app.js?v=4.3.2'; import {setupDesempenho} from './js/desempenho.js?v=4.3.2'; runPage('desempenho',setupDesempenho);</script>
-<script type="module" src="./js/pwa.js?v=4.3.2"></script></body>
+<script src="./js/cache-recovery.js?v=4.3.3"></script><script src="./js/runtime-guard.js?v=4.3.3"></script><script src="./js/supabase-loader.js?v=4.3.3"></script>
+<script type="module">import {runPage} from './js/app.js?v=4.3.3'; import {setupDesempenho} from './js/desempenho.js?v=4.3.3'; runPage('desempenho',setupDesempenho);</script>
+<script type="module" src="./js/pwa.js?v=4.3.3"></script></body>
 </html>

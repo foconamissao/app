@@ -26,12 +26,13 @@ function setStats(responses,reviews,prevResponses,prevReviews,attempts=[],prevAt
  $('#perfFlashcards').textContent=fmtInt(reviews.length);const remembered=reviews.filter(r=>Number(r.dificuldade)>=3).length;$('#perfFlashMemory').textContent=reviews.length?`${pct(remembered,reviews.length)}% lembrados/fáceis`:'Sem revisões no período';
 }
 function renderSourceBreakdown(responses,attempts){
+ const box=$('#sourceBreakdown');if(!box)return;
  const regular=responses.filter(r=>r.origem!=='simulado'),sim=responses.filter(r=>r.origem==='simulado');
  const groups=[
   {name:'Banco de questões',rows:regular,detail:`${regular.length} respondida${regular.length===1?'':'s'}`},
   {name:'Simulados',rows:sim,detail:`${attempts.length} prova${attempts.length===1?'':'s'} finalizada${attempts.length===1?'':'s'} · ${sim.length} questões`}
  ];
- $('#sourceBreakdown').innerHTML=groups.map(g=>{const hits=g.rows.filter(r=>r.acertou).length,acc=pct(hits,g.rows.length);return `<div class="source-breakdown-item"><div><b>${g.name}</b><small>${g.detail}</small></div><div><strong>${acc}%</strong><small>${hits}/${g.rows.length} acertos</small></div></div>`}).join('');
+ box.innerHTML=groups.map(g=>{const hits=g.rows.filter(r=>r.acertou).length,acc=pct(hits,g.rows.length);return `<div class="source-breakdown-item"><div><b>${g.name}</b><small>${g.detail}</small></div><div><strong>${acc}%</strong><small>${hits}/${g.rows.length} acertos</small></div></div>`}).join('');
 }
 function renderEvolution(responses,range){
  const days=range==='all'?Math.min(30,Math.max(7,new Set(responses.map(r=>dateKey(r.created_at))).size||7)):Number(range);
