@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const VERSION='4.4.1';
+const VERSION='4.4.2';
 const SUPABASE_URL='https://zjnbmgkvnzdnaiszqhta.supabase.co';
 const SUPABASE_KEY='sb_publishable_vghGz23YWhZ4CNXMjkrslA_ZH1osJsI';
 const $=s=>document.querySelector(s);

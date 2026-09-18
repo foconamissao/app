@@ -1,4 +1,4 @@
-const CACHE='foco-na-missao-static-v4.4.1';
+const CACHE='foco-na-missao-static-v4.4.2';
 const STATIC=[
   './css/variables.css','./css/global.css','./css/responsive.css',
   './assets/logo-foco-na-missao.png','./assets/icon-192.png','./assets/icon-512.png',
