@@ -270,3 +270,6 @@ body.simulation-lockdown .sidebar a[href]:not([href="#"]){cursor:not-allowed}
 
 /* V4.3 — identidade multi-editais */
 .brand>div:last-child{min-width:0}.brand small{display:block;font-size:10px;line-height:1.25;letter-spacing:.06em;max-width:155px}.brand strong{font-size:13px;line-height:1.2}.brand-logo{filter:drop-shadow(0 8px 16px rgba(0,0,0,.28))}
+
+/* V4.3.5 — objetivo pode ser desmarcado sem apagar histórico */
+.objective-unselect{border-color:rgba(226,109,109,.52)!important;color:#ffb5b3!important}.objective-unselect:hover{background:rgba(226,109,109,.08)!important;border-color:#e26d6d!important}
