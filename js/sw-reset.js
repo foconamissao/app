@@ -13,9 +13,9 @@
         }
         if('caches' in window){
           const keys=await caches.keys();
-          await Promise.all(keys.filter(k=>/^missao-pe-/i.test(k)).map(k=>caches.delete(k)));
+          await Promise.all(keys.filter(k=>/^(missao-pe-|foco-na-missao-)/i.test(k)).map(k=>caches.delete(k)));
         }
-      }catch(e){ console.warn('[Missão PE] recuperação de cache:',e); }
+      }catch(e){ console.warn('[Foco na Missão] recuperação de cache:',e); }
     })();
-  }catch(e){ console.warn('[Missão PE] recuperação indisponível:',e); }
+  }catch(e){ console.warn('[Foco na Missão] recuperação indisponível:',e); }
 })();

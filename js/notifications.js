@@ -58,7 +58,7 @@ async function markAdminRead(ctx,items){
 export async function mountNotifications(ctx,container){
   const wrap=document.createElement('div');
   wrap.className='notif-wrap';
-  wrap.innerHTML='<button class="notif-bell" type="button" aria-label="Notificações" aria-expanded="false">🔔<span class="notif-count hidden"></span></button><div class="notif-panel hidden"><div class="notif-head"><b>Notificações</b><span>Missão PE</span></div><div class="notif-list"><div class="empty compact">Carregando…</div></div></div>';
+  wrap.innerHTML='<button class="notif-bell" type="button" aria-label="Notificações" aria-expanded="false">🔔<span class="notif-count hidden"></span></button><div class="notif-panel hidden"><div class="notif-head"><b>Notificações</b><span>Foco na Missão</span></div><div class="notif-list"><div class="empty compact">Carregando…</div></div></div>';
   container.prepend(wrap);
   const bell=wrap.querySelector('.notif-bell'),panel=wrap.querySelector('.notif-panel'),list=wrap.querySelector('.notif-list'),count=wrap.querySelector('.notif-count');
   let items=[];

@@ -7,7 +7,7 @@ function showInstallHelp(){
   const ios=isIOS();
   const modal=document.createElement('div');
   modal.className='modal install-modal';
-  modal.innerHTML=`<div class="modal-card install-card"><h2>Instalar Missão PE</h2><p>${ios
+  modal.innerHTML=`<div class="modal-card install-card"><h2>Instalar Foco na Missão</h2><p>${ios
     ? 'No iPhone ou iPad, abra esta página no Safari, toque em <b>Compartilhar</b> e escolha <b>Adicionar à Tela de Início</b>.'
     : 'No navegador, abra o menu e escolha <b>Instalar aplicativo</b> ou <b>Adicionar à tela inicial</b>.'}</p><button class="btn full" type="button">ENTENDI</button></div>`;
   document.body.appendChild(modal);

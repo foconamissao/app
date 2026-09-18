@@ -7,7 +7,7 @@ const $=s=>document.querySelector(s);
 const esc=(v='')=>String(v).replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
 const timeout=(p,ms=15000)=>Promise.race([Promise.resolve(p),new Promise((_,rej)=>setTimeout(()=>rej(new Error('Tempo esgotado')),ms))]);
 function showError(msg,detail=''){
-  console.error('[Missão PE '+VERSION+'] '+msg,detail||'');
+  console.error('[Foco na Missão '+VERSION+'] '+msg,detail||'');
   let box=$('#pageLoadError');
   if(!box){box=document.createElement('div');box.id='pageLoadError';box.className='notice error';box.style.margin='16px 0';$('.main')?.prepend(box)}
   if(box) box.innerHTML='<b>'+esc(msg)+'</b>'+ (detail?'<br><small>'+esc(detail)+'</small>':'');

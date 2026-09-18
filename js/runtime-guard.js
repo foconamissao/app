@@ -4,7 +4,7 @@
   let reported=false;
   function show(message){
     if(reported)return; reported=true;
-    console.error('[Missão PE '+VERSION+'] '+message);
+    console.error('[Foco na Missão '+VERSION+'] '+message);
     const box=document.createElement('div');
     box.id='runtimeGuardNotice';
     box.setAttribute('role','alert');
@@ -21,7 +21,7 @@
   });
   window.addEventListener('unhandledrejection',e=>{
     const reason=String(e?.reason?.message||e?.reason||'');
-    console.error('[Missão PE] rejeição não tratada:',e?.reason);
+    console.error('[Foco na Missão] rejeição não tratada:',e?.reason);
     if(/fetch|network|module|import|supabase|failed/i.test(reason)) show('Falha de comunicação durante a inicialização.');
   });
   window.setTimeout(()=>{

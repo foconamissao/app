@@ -6,7 +6,7 @@
     if(window.supabase?.createClient)return true;
     let err;
     for(const src of ['https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2','https://unpkg.com/@supabase/supabase-js@2']){
-      try{await inject(src);return true}catch(e){err=e;console.warn('[Missão PE '+VERSION+']',e.message)}
+      try{await inject(src);return true}catch(e){err=e;console.warn('[Foco na Missão '+VERSION+']',e.message)}
     }
     throw err||new Error('Biblioteca de conexão indisponível');
   })();

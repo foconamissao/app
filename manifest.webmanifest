@@ -1,7 +1,7 @@
 {
-  "name": "Foco na Missão PE - A missão agora é outra!",
-  "short_name": "Missão PE",
-  "description": "Foco na Missão PE — plataforma de estudos para quem está na missão da aprovação.",
+  "name": "Foco na Missão - Concurseiros na Missão",
+  "short_name": "Foco na Missão",
+  "description": "Plataforma de estudos para concurseiros, com múltiplos editais e foco na aprovação.",
   "start_url": "./login.html",
   "scope": "./",
   "display": "standalone",
